@@ -28,33 +28,80 @@ export default function Landing() {
         </header>
 
         {/* Hero Section */}
-        <div className="text-center py-20">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            Professional Compliance
-            <br />
-            <span className="text-baco-primary">Community</span>
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Join the premier association for compliance officers in the Bahamas. 
-            Access exclusive events, resources, and connect with industry professionals.
-          </p>
-          <div className="space-x-4">
-            <Button 
-              size="lg"
-              onClick={() => window.location.href = "/api/login"}
-              className="bg-baco-primary hover:bg-baco-secondary px-8 py-3"
-              data-testid="button-get-started"
-            >
-              Get Started
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white px-8 py-3"
-              data-testid="button-learn-more"
-            >
-              Learn More
-            </Button>
+        <div className="py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Hero Content */}
+            <div className="text-center lg:text-left">
+              <h2 className="text-5xl font-bold text-gray-900 mb-6">
+                Professional Compliance
+                <br />
+                <span className="text-baco-primary">Community</span>
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Join the premier association for compliance officers in the Bahamas. 
+                Access exclusive events, resources, and connect with industry professionals.
+              </p>
+              <div className="space-x-4">
+                <Button 
+                  size="lg"
+                  onClick={() => window.location.href = "/api/login"}
+                  className="bg-baco-primary hover:bg-baco-secondary px-8 py-3"
+                  data-testid="button-get-started"
+                >
+                  Get Started
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white px-8 py-3"
+                  data-testid="button-learn-more"
+                >
+                  Learn More
+                </Button>
+              </div>
+            </div>
+
+            {/* Hero Image */}
+            <div className="relative">
+              <div className="aspect-[4/3] bg-gradient-to-br from-baco-primary/10 to-baco-secondary/20 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                <img 
+                  src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1926&q=80" 
+                  alt="Professional compliance team meeting in modern office" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-6 left-6 text-white">
+                  <div className="bg-baco-primary/90 backdrop-blur-sm rounded-lg px-4 py-2">
+                    <p className="text-sm font-medium">Nassau, Bahamas</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating cards for visual interest */}
+              <div className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-4 border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <i className="fas fa-check text-green-600 text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">500+</p>
+                    <p className="text-xs text-gray-500">Active Members</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-4 border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i className="fas fa-calendar text-blue-600 text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">25+</p>
+                    <p className="text-xs text-gray-500">Annual Events</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
