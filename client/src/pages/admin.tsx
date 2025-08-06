@@ -1,0 +1,595 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { useEffect } from "react";
+import { isUnauthorizedError } from "@/lib/authUtils";
+
+const eventSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  location: z.string().optional(),
+  price: z.string().transform((val) => parseFloat(val) || 0),
+  maxAttendees: z.string().transform((val) => parseInt(val) || 0),
+});
+
+export default function Admin() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
+
+  // Redirect if not admin
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user?.isAdmin)) {
+      toast({
+        title: "Access Denied",
+        description: "You need admin privileges to access this page.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    }
+  }, [isAuthenticated, isLoading, user, toast]);
+
+  const { data: stats } = useQuery({
+    queryKey: ["/api/admin/stats"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/admin/users"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: documents = [] } = useQuery({
+    queryKey: ["/api/documents/my"], // Admin should see all documents
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: events = [] } = useQuery({
+    queryKey: ["/api/events"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const form = useForm<z.infer<typeof eventSchema>>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      location: "",
+      price: "0",
+      maxAttendees: "50",
+    },
+  });
+
+  const createEventMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof eventSchema>) => {
+      const response = await apiRequest("POST", "/api/events", {
+        ...data,
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(data.endDate).toISOString(),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Created",
+        description: "The event has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setCreateEventDialogOpen(false);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "Your session has expired. Redirecting to login...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 2000);
+        return;
+      }
+      toast({
+        title: "Creation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateDocumentStatusMutation = useMutation({
+    mutationFn: async ({ documentId, status }: { documentId: string; status: string }) => {
+      const response = await apiRequest("PUT", `/api/admin/documents/${documentId}/status`, { status });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document Updated",
+        description: "Document status has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/my"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (data: z.infer<typeof eventSchema>) => {
+    createEventMutation.mutate(data);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-800 hover:bg-green-100";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+      case "approved":
+        return "bg-green-100 text-green-800 hover:bg-green-100";
+      case "rejected":
+        return "bg-red-100 text-red-800 hover:bg-red-100";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+    }
+  };
+
+  if (!user?.isAdmin) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+          <i className="fas fa-lock text-gray-400 text-4xl mb-4"></i>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h1>
+          <p className="text-gray-600">This page is only accessible to administrators.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+            <p className="text-gray-600">Manage members, events, and platform settings.</p>
+          </div>
+        </div>
+
+        {/* Admin Stats */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-baco-primary/20 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-users text-baco-primary"></i>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Members</p>
+                    <p className="text-2xl font-bold text-gray-900" data-testid="stat-total-members">
+                      {stats.totalMembers}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-baco-success/20 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-check text-baco-success"></i>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Active Members</p>
+                    <p className="text-2xl font-bold text-gray-900" data-testid="stat-active-members">
+                      {stats.activeMembers}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-file-alt text-yellow-600"></i>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Pending Documents</p>
+                    <p className="text-2xl font-bold text-gray-900" data-testid="stat-pending-documents">
+                      {stats.pendingDocuments}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="users" data-testid="tab-users">Members</TabsTrigger>
+            <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
+            <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>Member Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Join Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((member: any) => (
+                        <TableRow key={member.id}>
+                          <TableCell className="font-medium" data-testid={`member-name-${member.id}`}>
+                            {member.firstName} {member.lastName}
+                          </TableCell>
+                          <TableCell data-testid={`member-email-${member.id}`}>
+                            {member.email}
+                          </TableCell>
+                          <TableCell>
+                            {member.joinDate ? format(new Date(member.joinDate), 'MMM d, yyyy') : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              className={getStatusColor(member.membershipStatus)}
+                              data-testid={`member-status-${member.id}`}
+                            >
+                              {member.membershipStatus?.charAt(0).toUpperCase() + member.membershipStatus?.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" data-testid={`button-view-member-${member.id}`}>
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="events">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Event Management</CardTitle>
+                  <Dialog open={createEventDialogOpen} onOpenChange={setCreateEventDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="bg-baco-primary hover:bg-baco-secondary"
+                        data-testid="button-create-event"
+                      >
+                        <i className="fas fa-plus mr-2"></i>
+                        Create Event
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Create New Event</DialogTitle>
+                      </DialogHeader>
+                      
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                          <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Event Title</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-event-title" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} data-testid="textarea-event-description" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="startDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Start Date & Time</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="datetime-local" 
+                                      {...field} 
+                                      data-testid="input-event-start-date"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="endDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>End Date & Time</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="datetime-local" 
+                                      {...field} 
+                                      data-testid="input-event-end-date"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Location</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-event-location" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="price"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Price (BSD)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      step="0.01" 
+                                      {...field} 
+                                      data-testid="input-event-price"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="maxAttendees"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Max Attendees</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      {...field} 
+                                      data-testid="input-event-max-attendees"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="flex space-x-4">
+                            <Button
+                              type="submit"
+                              disabled={createEventMutation.isPending}
+                              className="bg-baco-primary hover:bg-baco-secondary"
+                              data-testid="button-submit-create-event"
+                            >
+                              {createEventMutation.isPending ? "Creating..." : "Create Event"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setCreateEventDialogOpen(false)}
+                              data-testid="button-cancel-create-event"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Attendees</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {events.map((event: any) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium" data-testid={`event-title-${event.id}`}>
+                            {event.title}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(event.startDate), 'MMM d, yyyy h:mm a')}
+                          </TableCell>
+                          <TableCell>{event.location || 'TBA'}</TableCell>
+                          <TableCell>
+                            {event.price > 0 ? `$${event.price} BSD` : 'Free'}
+                          </TableCell>
+                          <TableCell>
+                            {event.currentAttendees || 0} / {event.maxAttendees || '∞'}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" data-testid={`button-manage-event-${event.id}`}>
+                              Manage
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle>Document Verification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Document</TableHead>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Upload Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {documents.map((document: any) => (
+                        <TableRow key={document.id}>
+                          <TableCell className="font-medium" data-testid={`document-name-${document.id}`}>
+                            {document.fileName}
+                          </TableCell>
+                          <TableCell>Member Name</TableCell>
+                          <TableCell className="capitalize">{document.category}</TableCell>
+                          <TableCell>
+                            {format(new Date(document.uploadDate), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              className={getStatusColor(document.status)}
+                              data-testid={`document-status-${document.id}`}
+                            >
+                              {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => window.open(document.objectPath, '_blank')}
+                                data-testid={`button-view-document-${document.id}`}
+                              >
+                                View
+                              </Button>
+                              {document.status === "pending" && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-green-600 hover:bg-green-50"
+                                    onClick={() => updateDocumentStatusMutation.mutate({ 
+                                      documentId: document.id, 
+                                      status: "approved" 
+                                    })}
+                                    data-testid={`button-approve-document-${document.id}`}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:bg-red-50"
+                                    onClick={() => updateDocumentStatusMutation.mutate({ 
+                                      documentId: document.id, 
+                                      status: "rejected" 
+                                    })}
+                                    data-testid={`button-reject-document-${document.id}`}
+                                  >
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Layout>
+  );
+}

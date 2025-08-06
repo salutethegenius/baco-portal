@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* BACO Brand Colors */
+  --baco-primary: hsl(207, 90%, 54%);
+  --baco-secondary: hsl(207, 100%, 37%);
+  --baco-accent: hsl(39, 100%, 50%);
+  --baco-success: hsl(122, 39%, 49%);
+  --baco-error: hsl(0, 68%, 42%);
+  --baco-neutral: hsl(0, 0%, 98%);
+  --baco-neutral-dark: hsl(0, 0%, 96%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  /* BACO Brand Color Classes */
+  .bg-baco-primary {
+    background-color: var(--baco-primary);
+  }
+
+  .bg-baco-secondary {
+    background-color: var(--baco-secondary);
+  }
+
+  .bg-baco-accent {
+    background-color: var(--baco-accent);
+  }
+
+  .bg-baco-success {
+    background-color: var(--baco-success);
+  }
+
+  .bg-baco-error {
+    background-color: var(--baco-error);
+  }
+
+  .bg-baco-neutral {
+    background-color: var(--baco-neutral);
+  }
+
+  .bg-baco-neutral-dark {
+    background-color: var(--baco-neutral-dark);
+  }
+
+  .text-baco-primary {
+    color: var(--baco-primary);
+  }
+
+  .text-baco-secondary {
+    color: var(--baco-secondary);
+  }
+
+  .text-baco-accent {
+    color: var(--baco-accent);
+  }
+
+  .text-baco-success {
+    color: var(--baco-success);
+  }
+
+  .text-baco-error {
+    color: var(--baco-error);
+  }
+
+  .border-baco-primary {
+    border-color: var(--baco-primary);
+  }
+
+  .border-baco-secondary {
+    border-color: var(--baco-secondary);
+  }
+
+  .hover\:bg-baco-primary:hover {
+    background-color: var(--baco-primary);
+  }
+
+  .hover\:bg-baco-secondary:hover {
+    background-color: var(--baco-secondary);
+  }
+
+  .hover\:text-baco-primary:hover {
+    color: var(--baco-primary);
+  }
+
+  .hover\:text-baco-secondary:hover {
+    color: var(--baco-secondary);
+  }
+
+  /* Utility classes for opacity variations */
+  .bg-baco-primary\/10 {
+    background-color: hsl(207 90% 54% / 0.1);
+  }
+
+  .bg-baco-accent\/10 {
+    background-color: hsl(39 100% 50% / 0.1);
+  }
+
+  .bg-baco-success\/10 {
+    background-color: hsl(122 39% 49% / 0.1);
+  }
+
+  .bg-baco-primary\/20 {
+    background-color: hsl(207 90% 54% / 0.2);
+  }
+
+  .bg-baco-accent\/20 {
+    background-color: hsl(39 100% 50% / 0.2);
+  }
+
+  .bg-baco-success\/20 {
+    background-color: hsl(122 39% 49% / 0.2);
+  }
+}

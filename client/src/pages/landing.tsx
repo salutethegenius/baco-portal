@@ -1,0 +1,133 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-baco-neutral to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className="py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-baco-primary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">B</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">BACO</h1>
+                <p className="text-sm text-gray-600">Bahamas Association of Compliance Officers</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => window.location.href = "/api/login"}
+              className="bg-baco-primary hover:bg-baco-secondary"
+              data-testid="button-login"
+            >
+              Sign In
+            </Button>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <div className="text-center py-20">
+          <h2 className="text-5xl font-bold text-gray-900 mb-6">
+            Professional Compliance
+            <br />
+            <span className="text-baco-primary">Community</span>
+          </h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Join the premier association for compliance officers in the Bahamas. 
+            Access exclusive events, resources, and connect with industry professionals.
+          </p>
+          <div className="space-x-4">
+            <Button 
+              size="lg"
+              onClick={() => window.location.href = "/api/login"}
+              className="bg-baco-primary hover:bg-baco-secondary px-8 py-3"
+              data-testid="button-get-started"
+            >
+              Get Started
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white px-8 py-3"
+              data-testid="button-learn-more"
+            >
+              Learn More
+            </Button>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="py-20">
+          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Membership Benefits
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-baco-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                  <i className="fas fa-calendar-alt text-baco-primary text-xl"></i>
+                </div>
+                <CardTitle className="text-xl font-semibold">Professional Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Access exclusive conferences, workshops, and networking events designed for compliance professionals.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-baco-accent bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                  <i className="fas fa-certificate text-baco-accent text-xl"></i>
+                </div>
+                <CardTitle className="text-xl font-semibold">Certification Programs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Enhance your expertise with our comprehensive certification and continuing education programs.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-baco-success bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                  <i className="fas fa-users text-baco-success text-xl"></i>
+                </div>
+                <CardTitle className="text-xl font-semibold">Professional Network</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Connect with fellow compliance professionals and industry leaders across the Bahamas.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center py-20">
+          <Card className="max-w-2xl mx-auto bg-baco-primary text-white">
+            <CardContent className="p-12">
+              <h3 className="text-3xl font-bold mb-4">Ready to Join BACO?</h3>
+              <p className="text-lg mb-8 opacity-90">
+                Become part of the leading compliance community in the Bahamas and advance your career.
+              </p>
+              <Button 
+                size="lg"
+                onClick={() => window.location.href = "/api/login"}
+                className="bg-white text-baco-primary hover:bg-gray-100 px-8 py-3"
+                data-testid="button-join-now"
+              >
+                Join Now
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
