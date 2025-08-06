@@ -101,13 +101,16 @@ export default function Header() {
                   {user?.membershipStatus} Member
                 </p>
               </div>
-              <button 
-                className="text-gray-400 hover:text-gray-500"
+              <Button 
+                variant="outline"
+                size="sm"
+                className="ml-3 border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400"
                 onClick={() => window.location.href = "/api/logout"}
                 data-testid="button-logout"
               >
-                <i className="fas fa-sign-out-alt text-sm"></i>
-              </button>
+                <i className="fas fa-sign-out-alt mr-2"></i>
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -136,6 +139,16 @@ export default function Header() {
               )}
             </button>
           ))}
+          
+          {/* Mobile Logout Button */}
+          <button
+            onClick={() => window.location.href = "/api/logout"}
+            className="w-full text-left px-3 py-2 text-sm font-medium rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+            data-testid="mobile-button-logout"
+          >
+            <i className="fas fa-sign-out-alt mr-2"></i>
+            Logout
+          </button>
         </div>
       </div>
     </header>
