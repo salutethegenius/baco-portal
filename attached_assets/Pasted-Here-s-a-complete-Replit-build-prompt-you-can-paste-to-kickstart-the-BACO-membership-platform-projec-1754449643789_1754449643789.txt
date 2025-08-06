@@ -1,0 +1,86 @@
+Here’s a complete Replit build prompt you can paste to kickstart the BACO membership platform project:
+
+⸻
+
+🛠️ Replit Prompt: BACO Membership Platform
+
+Project Title:
+baco-membership-platform
+
+Client:
+Ashley Butler – BACO (Bahamas Association of Compliance Officers)
+Nassau, NP, Bahamas
+🔗 https://www.baco-bahamas.com
+
+⸻
+
+✅ Goal:
+
+Build a secure and easy-to-use membership portal where BACO members can:
+	1.	Create and update personal profiles
+	2.	Pay membership fees online (via Stripe or local integration)
+	3.	Upload and manage documents (certificates, ID, receipts)
+	4.	Send and receive messages (admin ↔ member)
+	5.	Get automated emails (payment confirmations, notifications)
+
+⸻
+
+💻 Tech Stack:
+	•	Frontend: React + Tailwind CSS
+	•	Backend: Node.js (Express) or Firebase Functions
+	•	Database: Firebase Firestore or Supabase
+	•	Auth: Firebase Auth or Clerk
+	•	Payments: Stripe (global) OR Bahamas-specific (SunCash, Kanoo if needed)
+	•	File Storage: Firebase Storage or S3
+	•	Email: Resend, SendGrid, or Mailgun
+	•	Hosting: Replit deployment → custom domain integration
+
+⸻
+
+⚙️ Key Features:
+
+🔐 Member Account
+	•	Sign up / login
+	•	Update profile (name, email, phone, address, etc.)
+	•	Role-based access (Member vs Admin)
+
+💳 Membership Payments
+	•	View plan and due date
+	•	Pay with card or online wallet
+	•	Auto email receipts
+	•	Admin dashboard to see all payment statuses
+
+📂 File Uploads
+	•	Upload ID, certificates, PDFs, etc.
+	•	Downloadable from dashboard
+	•	Secure per-user access
+
+💬 Messaging
+	•	Member can message admin (like inbox)
+	•	Admin reply shows up in member’s portal
+	•	Optional email notification on reply
+
+📧 Notifications
+	•	Automated alerts: payment due, response to messages, etc.
+	•	Optional monthly newsletter feature
+
+⸻
+
+📦 Deliverables:
+	•	Admin panel for Ashley + BACO team
+	•	Member dashboard
+	•	Payment tracking logs
+	•	File management interface
+	•	Basic notification panel
+
+⸻
+
+🗓️ Timeline:
+
+6–8 weeks with weekly updates.
+
+⸻
+
+Let me know if you want this bundled into a JSON setup, GitHub starter repo, or pre-seeded Replit project. I can also generate sample user data and templates to help you test.
+
+Want to start the build now?
