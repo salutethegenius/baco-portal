@@ -25,9 +25,13 @@ import { generateSlug, ensureUniqueSlug } from "@shared/utils";
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  createUser(user: InsertUser): Promise<User>;
+  getAllUsersDetailed(): Promise<User[]>;
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User>;
   updateUserMembershipStatus(userId: string, status: string, nextPaymentDate?: Date): Promise<User>;
+  updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User>;
 
   // Event operations
   getEvents(): Promise<Event[]>;
@@ -88,6 +92,35 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  async getAllUsersDetailed(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        isAdmin,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }

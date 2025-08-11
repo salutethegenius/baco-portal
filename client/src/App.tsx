@@ -15,6 +15,7 @@ import Admin from "@/pages/admin";
 import Checkout from "@/pages/checkout";
 import EventDetail from "@/pages/event-detail";
 import PublicEvent from "@/pages/public-event";
+import MemberRegistration from "@/pages/member-registration";
 import { lazy } from "react";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
     <Switch>
       {/* Public routes (no auth required) */}
       <Route path="/events/:slug" component={PublicEvent} />
+      <Route path="/member-registration" component={MemberRegistration} />
       
       {/* Authenticated routes */}
       {isLoading || !isAuthenticated ? (

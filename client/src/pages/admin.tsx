@@ -65,6 +65,11 @@ export default function Admin() {
     enabled: !!user?.isAdmin,
   });
 
+  const { data: detailedUsers = [] } = useQuery({
+    queryKey: ["/api/admin/users/detailed"],
+    enabled: !!user?.isAdmin,
+  });
+
   const { data: documents = [] } = useQuery({
     queryKey: ["/api/documents/my"], // Admin should see all documents
     enabled: !!user?.isAdmin,
@@ -229,6 +234,38 @@ export default function Admin() {
     }
   };
 
+  const updateAdminStatusMutation = useMutation({
+    mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
+      return await apiRequest("PUT", `/api/admin/users/${userId}/admin-status`, { isAdmin });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/detailed"] });
+      toast({
+        title: "Success",
+        description: "Admin status updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -340,6 +377,7 @@ export default function Admin() {
                         <TableHead>Email</TableHead>
                         <TableHead>Join Date</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -364,9 +402,116 @@ export default function Admin() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm" data-testid={`button-view-member-${member.id}`}>
-                              View Details
-                            </Button>
+                            <Badge 
+                              className={member.isAdmin ? "bg-purple-100 text-purple-800 hover:bg-purple-100" : "bg-gray-100 text-gray-800 hover:bg-gray-100"}
+                              data-testid={`member-role-${member.id}`}
+                            >
+                              {member.isAdmin ? "Admin" : "Member"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm" data-testid={`button-view-member-${member.id}`}>
+                                    View Details
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Member Details</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <strong>Name:</strong> {member.firstName} {member.lastName}
+                                      </div>
+                                      <div>
+                                        <strong>Email:</strong> {member.email}
+                                      </div>
+                                      <div>
+                                        <strong>Join Date:</strong> {member.joinDate ? format(new Date(member.joinDate), 'MMM d, yyyy') : 'N/A'}
+                                      </div>
+                                      <div>
+                                        <strong>Status:</strong> 
+                                        <Badge className={`ml-2 ${getStatusColor(member.membershipStatus)}`}>
+                                          {member.membershipStatus?.charAt(0).toUpperCase() + member.membershipStatus?.slice(1)}
+                                        </Badge>
+                                      </div>
+                                      <div>
+                                        <strong>Role:</strong> 
+                                        <Badge className={`ml-2 ${member.isAdmin ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800"}`}>
+                                          {member.isAdmin ? "Admin" : "Member"}
+                                        </Badge>
+                                      </div>
+                                      <div>
+                                        <strong>Membership Type:</strong> {member.membershipType || 'N/A'}
+                                      </div>
+                                      {member.phone && (
+                                        <div>
+                                          <strong>Phone:</strong> {member.phone}
+                                        </div>
+                                      )}
+                                      {member.address && (
+                                        <div className="col-span-2">
+                                          <strong>Address:</strong> {member.address}
+                                        </div>
+                                      )}
+                                      {member.annualFee && (
+                                        <div>
+                                          <strong>Annual Fee:</strong> ${member.annualFee}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="flex gap-2 pt-4 border-t">
+                                      {!member.isAdmin && (
+                                        <Button
+                                          variant="default" 
+                                          size="sm"
+                                          onClick={() => updateAdminStatusMutation.mutate({ userId: member.id, isAdmin: true })}
+                                          disabled={updateAdminStatusMutation.isPending}
+                                        >
+                                          Grant Admin Access
+                                        </Button>
+                                      )}
+                                      {member.isAdmin && member.id !== user?.id && (
+                                        <Button
+                                          variant="destructive" 
+                                          size="sm"
+                                          onClick={() => updateAdminStatusMutation.mutate({ userId: member.id, isAdmin: false })}
+                                          disabled={updateAdminStatusMutation.isPending}
+                                        >
+                                          Remove Admin Access
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                              {!member.isAdmin && (
+                                <Button
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => updateAdminStatusMutation.mutate({ userId: member.id, isAdmin: true })}
+                                  disabled={updateAdminStatusMutation.isPending}
+                                  data-testid={`button-make-admin-${member.id}`}
+                                >
+                                  Make Admin
+                                </Button>
+                              )}
+                              {member.isAdmin && member.id !== user?.id && (
+                                <Button
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => updateAdminStatusMutation.mutate({ userId: member.id, isAdmin: false })}
+                                  disabled={updateAdminStatusMutation.isPending}
+                                  data-testid={`button-remove-admin-${member.id}`}
+                                >
+                                  Remove Admin
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

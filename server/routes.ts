@@ -592,6 +592,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Member registration endpoint (public)
+  app.post('/api/member-registration', async (req, res) => {
+    try {
+      const {
+        registrationType,
+        membershipNumber,
+        firstName,
+        lastName,
+        email,
+        membershipType,
+        agreesToTerms
+      } = req.body;
+
+      if (!agreesToTerms) {
+        return res.status(400).json({ message: "You must agree to the terms and conditions" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Determine membership fee based on type
+      const membershipFees = {
+        academic: "100.00",
+        associate: "200.00", 
+        professional: "250.00",
+        bccp: "300.00"
+      };
+
+      // Create new user with comprehensive data
+      const newUser = await storage.createUser({
+        email,
+        firstName,
+        lastName,
+        membershipType,
+        membershipStatus: registrationType === "existing" ? "active" : "pending",
+        isExistingMember: registrationType === "existing",
+        membershipNumber: registrationType === "existing" ? membershipNumber : null,
+        annualFee: membershipFees[membershipType as keyof typeof membershipFees],
+        isAdmin: false
+      });
+
+      res.status(201).json({
+        message: "Membership application submitted successfully",
+        userId: newUser.id,
+        membershipType,
+        status: newUser.membershipStatus
+      });
+    } catch (error) {
+      console.error("Error processing member registration:", error);
+      res.status(500).json({ message: "Failed to process membership application" });
+    }
+  });
+
+  // Admin: Get all users with detailed info
+  app.get('/api/admin/users/detailed', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.claims?.sub);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsersDetailed();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching detailed users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Admin: Update user admin status
+  app.put('/api/admin/users/:userId/admin-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.claims?.sub);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { userId } = req.params;
+      const { isAdmin } = req.body;
+
+      const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating admin status:", error);
+      res.status(500).json({ message: "Failed to update admin status" });
+    }
+  });
+
   // Temporary endpoint to make current user admin (for testing)
   app.post('/api/make-me-admin', isAuthenticated, async (req: any, res) => {
     try {
