@@ -176,16 +176,6 @@ export class DatabaseStorage implements IStorage {
 
   async createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration> {
     const [newRegistration] = await db.insert(eventRegistrations).values(registration).returning();
-
-    // Update event attendee count
-    await db
-      .update(events)
-      .set({ 
-        currentAttendees: db.raw(`COALESCE(current_attendees, 0) + 1`),
-        updatedAt: new Date()
-      })
-      .where(eq(events.id, registration.eventId));
-
     return newRegistration;
   }
 

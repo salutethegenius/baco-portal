@@ -232,6 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const registration = await storage.createEventRegistration({
         eventId,
+        userId: null, // Public registration without user account
         firstName: fullName.split(' ')[0] || fullName,
         lastName: fullName.split(' ').slice(1).join(' ') || '',
         email,

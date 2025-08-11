@@ -6,6 +6,16 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### Public Event Pages with SEO-Friendly Slugs (August 11, 2025)
+- **Public Event URLs**: SEO-friendly public event pages at `/events/{slug}` (e.g., `/events/baco-annual-conference-2025`)
+- **No Authentication Required**: Public can view events and register without BACO membership or login
+- **Automatic Slug Generation**: Event titles converted to URL-safe slugs (e.g., "BACO Annual Conference 2025" → "baco-annual-conference-2025")
+- **Comprehensive Registration Form**: Collects full name, email, position, company, phone number, and optional notes
+- **Event Capacity Management**: Real-time attendee count tracking and registration limits
+- **Admin Public Page Buttons**: Admin panel includes "Public Page" buttons to easily access shareable event URLs
+- **Professional Event Layout**: Complete event details with date, time, location, pricing, and registration status
+- **Payment Handling**: Deferred payment collection - registration details captured first, payment processed separately
+
 ### Event Management System Complete
 - **Dedicated Event Pages**: Individual event pages at `/event/{eventId}` with complete event details
 - **Registration Forms**: Professional registration forms that collect detailed user information (name, email, position, phone, notes)
