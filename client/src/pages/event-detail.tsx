@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,14 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Layout from "@/components/Layout";
+import EventRegistrationForm from "@/components/EventRegistrationForm";
 
 export default function EventDetail() {
   const { eventId } = useParams();
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
 
   // Fetch event details
   const { data: event, isLoading: eventLoading } = useQuery({
@@ -30,48 +33,10 @@ export default function EventDetail() {
     enabled: isAuthenticated,
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (eventData: any) => {
-      // For paid events, redirect to checkout
-      if (eventData.price > 0) {
-        navigate(`/checkout/event/${eventData.id}`);
-        return;
-      }
-      
-      // Register for free events directly
-      await apiRequest("POST", "/api/event-registrations", {
-        eventId: eventData.id,
-        paymentAmount: "0.00",
-      });
-    },
-    onSuccess: (_, eventData) => {
-      if (eventData.price === 0) {
-        toast({
-          title: "Registration Successful",
-          description: "You have been registered for the event!",
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/event-registrations/my"] });
-      }
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Login Required",
-          description: "Please log in to register for events.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1500);
-        return;
-      }
-      toast({
-        title: "Registration Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleRegistrationSuccess = () => {
+    setShowRegistrationForm(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/event-registrations/my"] });
+  };
 
   if (eventLoading) {
     return (
@@ -289,11 +254,11 @@ export default function EventDetail() {
                   <Button
                     className="w-full"
                     variant={registrationStatus.variant as any}
-                    disabled={registrationStatus.disabled || registerMutation.isPending}
-                    onClick={() => registerMutation.mutate(event)}
+                    disabled={registrationStatus.disabled}
+                    onClick={() => setShowRegistrationForm(true)}
                     data-testid="button-register-event"
                   >
-                    {registerMutation.isPending ? "Processing..." : registrationStatus.text}
+                    {registrationStatus.text}
                   </Button>
                 )}
 
@@ -309,6 +274,15 @@ export default function EventDetail() {
           </div>
         </div>
       </div>
+
+      {/* Registration Form Modal */}
+      {showRegistrationForm && (
+        <EventRegistrationForm
+          event={event}
+          onClose={() => setShowRegistrationForm(false)}
+          onSuccess={handleRegistrationSuccess}
+        />
+      )}
     </Layout>
   );
 }

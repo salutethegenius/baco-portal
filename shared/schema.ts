@@ -68,6 +68,12 @@ export const eventRegistrations = pgTable("event_registrations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventId: varchar("event_id").references(() => events.id).notNull(),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  email: varchar("email").notNull(),
+  position: varchar("position"),
+  phoneNumber: varchar("phone_number"),
+  notes: text("notes"),
   registrationDate: timestamp("registration_date").defaultNow(),
   paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
   paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }),

@@ -2,7 +2,15 @@
 
 This is a BACO (Bahamas Association of Compliance Officers) membership platform that provides a comprehensive web application for managing member accounts, events, documents, messaging, and payments. The platform enables BACO members to maintain their profiles, pay membership fees, upload documents, participate in events, and communicate with administrators through a secure portal.
 
-The application serves as a complete membership management system with features including user authentication, payment processing via Stripe, document management with Google Cloud Storage, event registration, and internal messaging system.
+The application serves as a complete membership management system with features including user authentication, payment processing via Stripe, document management with Google Cloud Storage, event registration with detailed forms, and internal messaging system.
+
+## Recent Updates (August 2025)
+
+### Event Management System Complete
+- **Dedicated Event Pages**: Individual event pages at `/event/{eventId}` with complete event details
+- **Registration Forms**: Professional registration forms that collect detailed user information (name, email, position, phone, notes)
+- **Payment Flexibility**: Registration details collected first, payment processing handled separately for administrative flexibility
+- **Admin Integration**: Full CRUD operations for events with "View Event Page" functionality for easy sharing
 
 # User Preferences
 

@@ -187,13 +187,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/event-registrations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { eventId, paymentAmount } = req.body;
+      const { eventId, firstName, lastName, email, position, phoneNumber, notes, paymentStatus } = req.body;
+      
+      // Get event details to determine payment amount
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
       
       const registration = await storage.createEventRegistration({
         eventId,
         userId,
-        paymentAmount: paymentAmount || "0.00",
-        paymentStatus: paymentAmount > 0 ? "pending" : "paid",
+        firstName,
+        lastName,
+        email,
+        position,
+        phoneNumber,
+        notes,
+        paymentAmount: event.price.toString(),
+        paymentStatus: paymentStatus || "pending",
       });
       
       res.json(registration);
