@@ -6,6 +6,23 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
+import { z } from "zod";
+
+// API validation schema for events that handles string inputs from frontend
+const apiEventSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  startDate: z.string().transform(str => new Date(str)),
+  endDate: z.string().transform(str => new Date(str)),
+  location: z.string().optional(),
+  price: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? val : val.toString()
+  ),
+  maxAttendees: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === 'string' ? parseInt(val) : val
+  ),
+  status: z.string().optional().default("upcoming"),
+});
 
 // Temporarily comment out Stripe initialization
 // if (!process.env.STRIPE_SECRET_KEY) {
@@ -97,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const eventData = insertEventSchema.parse(req.body);
+      const eventData = apiEventSchema.parse(req.body);
       const event = await storage.createEvent({
         ...eventData,
         createdBy: userId,
