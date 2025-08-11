@@ -139,8 +139,9 @@ export class DatabaseStorage implements IStorage {
     return updatedEvent;
   }
 
-  async deleteEvent(id: string): Promise<void> {
-    await db.delete(events).where(eq(events.id, id));
+  async deleteEvent(id: string): Promise<boolean> {
+    const result = await db.delete(events).where(eq(events.id, id));
+    return result.rowCount > 0;
   }
 
   // Event registration operations

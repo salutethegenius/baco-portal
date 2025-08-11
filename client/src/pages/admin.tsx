@@ -36,6 +36,8 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
+  const [editEventDialogOpen, setEditEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
 
   // Redirect if not admin
   useEffect(() => {
@@ -122,6 +124,26 @@ export default function Admin() {
     },
   });
 
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await apiRequest("DELETE", `/api/events/${eventId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Deleted",
+        description: "The event has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateDocumentStatusMutation = useMutation({
     mutationFn: async ({ documentId, status }: { documentId: string; status: string }) => {
       const response = await apiRequest("PUT", `/api/admin/documents/${documentId}/status`, { status });
@@ -145,6 +167,12 @@ export default function Admin() {
 
   const handleSubmit = (data: z.infer<typeof eventSchema>) => {
     createEventMutation.mutate(data);
+  };
+
+  const handleDeleteEvent = (eventId: string, eventTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`)) {
+      deleteEventMutation.mutate(eventId);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -490,9 +518,17 @@ export default function Admin() {
                             {event.currentAttendees || 0} / {event.maxAttendees || '∞'}
                           </TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm" data-testid={`button-manage-event-${event.id}`}>
-                              Manage
-                            </Button>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => handleDeleteEvent(event.id, event.title)}
+                                disabled={deleteEventMutation.isPending}
+                                data-testid={`button-delete-event-${event.id}`}
+                              >
+                                {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
