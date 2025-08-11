@@ -25,13 +25,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Users table for email/password authentication and member management
+// Users table for Replit Auth and member management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique().notNull(),
-  password: varchar("password").notNull(),
-  firstName: varchar("first_name").notNull(),
-  lastName: varchar("last_name").notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   phone: varchar("phone"),
   address: text("address"),

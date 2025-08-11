@@ -60,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Server-side sessions stored in PostgreSQL
 - **Authorization**: Role-based access control with admin/member distinction
 - **Security**: HTTPS enforcement, secure cookies, and CSRF protection
+- **Admin Credentials**: ID: "admin-user-1", email: "admin@baco-bahamas.com", isAdmin: true
 
 ## Payment Processing
 - **Payment Provider**: Stripe for secure credit card processing
