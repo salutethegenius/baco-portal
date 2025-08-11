@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -161,6 +161,18 @@ export default function AuthPage() {
                           {isLoading ? "Signing In..." : "Sign In"}
                         </Button>
                       </form>
+                      
+                      {/* Additional Options */}
+                      <div className="text-center space-y-2">
+                        <p className="text-sm text-gray-600">
+                          Don't have an account yet?
+                        </p>
+                        <Link href="/member-registration">
+                          <Button variant="link" className="text-baco-primary hover:text-baco-secondary">
+                            Apply for BACO Membership
+                          </Button>
+                        </Link>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -240,8 +252,32 @@ export default function AuthPage() {
                       </form>
                     </CardContent>
                   </Card>
+                  
+                  {/* Member Registration Link */}
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Want to become a BACO member?
+                    </p>
+                    <Link href="/member-registration">
+                      <Button variant="outline" className="w-full" data-testid="button-member-registration">
+                        Apply for BACO Membership
+                      </Button>
+                    </Link>
+                  </div>
                 </TabsContent>
               </Tabs>
+              
+              {/* Quick Access Links */}
+              <div className="mt-6 text-center space-y-2">
+                <p className="text-sm text-gray-500">
+                  New to BACO?
+                </p>
+                <Link href="/member-registration">
+                  <Button variant="link" className="text-baco-primary hover:text-baco-secondary">
+                    Learn about membership benefits →
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Hero Section */}

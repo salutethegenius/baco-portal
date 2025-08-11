@@ -20,7 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, UserPlus } from "lucide-react";
+import { CheckCircle, UserPlus, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 
 const memberRegistrationSchema = z.object({
   // Basic Info
@@ -147,6 +148,15 @@ export default function MemberRegistration() {
                 <li>Access your BACO portal account</li>
               </ul>
             </div>
+            
+            <div className="text-center mt-6">
+              <Link href="/auth">
+                <Button variant="outline" className="inline-flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Return to Login
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -156,6 +166,16 @@ export default function MemberRegistration() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
+        {/* Back to Login Link */}
+        <div className="mb-6">
+          <Link href="/auth">
+            <Button variant="ghost" className="inline-flex items-center gap-2 text-baco-primary hover:text-baco-secondary">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Login
+            </Button>
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <UserPlus className="w-8 h-8 text-baco-primary" />
@@ -165,6 +185,16 @@ export default function MemberRegistration() {
             Join the Bahamas Association of Compliance Officers. Please complete this application form 
             and submit the required supporting documents.
           </p>
+          <div className="mt-4">
+            <p className="text-sm text-gray-500">
+              Already have an account? 
+              <Link href="/auth">
+                <Button variant="link" className="pl-1 text-baco-primary hover:text-baco-secondary">
+                  Sign in here
+                </Button>
+              </Link>
+            </p>
+          </div>
         </div>
 
         <Card>
