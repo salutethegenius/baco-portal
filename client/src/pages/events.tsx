@@ -60,8 +60,15 @@ export default function Events() {
     },
   });
 
-  const upcomingEvents = (events || []).filter((event: any) => new Date(event.startDate) > new Date());
-  const pastEvents = (events || []).filter((event: any) => new Date(event.startDate) <= new Date());
+  const now = new Date();
+  const upcomingEvents = (events || []).filter((event: any) => {
+    const eventDate = new Date(event.startDate);
+    return eventDate > now;
+  });
+  const pastEvents = (events || []).filter((event: any) => {
+    const eventDate = new Date(event.startDate);
+    return eventDate <= now;
+  });
   
   const registeredEventIds = new Set((myRegistrations || []).map((reg: any) => reg.eventId || reg.event?.id));
 
@@ -71,7 +78,8 @@ export default function Events() {
     if (isRegistered(event.id)) {
       return { text: "Registered", variant: "success" };
     }
-    if (new Date(event.startDate) <= new Date()) {
+    const eventDate = new Date(event.startDate);
+    if (eventDate <= new Date()) {
       return { text: "Past Event", variant: "secondary" };
     }
     if (event.currentAttendees >= event.maxAttendees) {
