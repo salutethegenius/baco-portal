@@ -262,11 +262,11 @@ export default function AuthPage() {
                 <p className="text-sm text-gray-500">
                   New to BACO?
                 </p>
-                <Link href="/member-registration">
+                <a href="https://www.baco-bahamas.com/" target="_blank" rel="noopener noreferrer">
                   <Button variant="link" className="text-baco-primary hover:text-baco-secondary">
                     Learn about membership benefits →
                   </Button>
-                </Link>
+                </a>
               </div>
             </div>
 
