@@ -34,8 +34,9 @@ export default function EventRegistration() {
       setIsRegistering(true);
       
       if (event.price > 0) {
-        // Navigate to checkout for paid events
-        navigate(`/checkout/event/${eventId}`);
+        // For paid events, redirect to Paylanes payment system
+        const paymentUrl = `https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7?amount=${event.price}&description=Event Registration: ${encodeURIComponent(event.title)}`;
+        window.location.href = paymentUrl;
         return;
       }
       

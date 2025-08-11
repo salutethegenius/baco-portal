@@ -64,22 +64,37 @@ export default function EventRegistrationForm({
 
   const registrationMutation = useMutation({
     mutationFn: async (data: RegistrationData) => {
+      // First register the user
       const response = await apiRequest("POST", "/api/event-registrations", {
         eventId: event.id,
         ...data,
       });
+      
+      // If event has a price, redirect to payment after registration
+      if (event.price && parseFloat(event.price) > 0) {
+        const paymentUrl = `https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7?amount=${event.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${data.fullName}`;
+        setTimeout(() => {
+          window.location.href = paymentUrl;
+        }, 1000);
+      }
+      
       return response.json();
     },
     onSuccess: () => {
       setIsSubmitted(true);
       toast({
         title: "Registration Successful",
-        description: "Your registration has been submitted successfully!",
+        description: event.price && parseFloat(event.price) > 0 
+          ? "Registration complete! Redirecting to payment..." 
+          : "Your registration has been submitted successfully!",
         variant: "default",
       });
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
+      
+      if (!event.price || parseFloat(event.price) === 0) {
+        setTimeout(() => {
+          onSuccess();
+        }, 2000);
+      }
     },
     onError: (error: any) => {
       console.error("Registration error:", error);

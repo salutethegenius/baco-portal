@@ -31,8 +31,9 @@ export default function Events() {
   const registerMutation = useMutation({
     mutationFn: async (eventData: any) => {
       if (eventData.price > 0) {
-        // Navigate to checkout for paid events
-        navigate(`/checkout/event/${eventData.id}`);
+        // For paid events, redirect to Paylanes payment system
+        const paymentUrl = `https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7?amount=${eventData.price}&description=Event Registration: ${encodeURIComponent(eventData.title)}`;
+        window.location.href = paymentUrl;
         return;
       }
       
