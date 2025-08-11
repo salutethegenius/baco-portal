@@ -56,11 +56,11 @@ Preferred communication style: Simple, everyday language.
 - **Object Storage**: Custom ACL system for fine-grained file access control
 
 ## Authentication and Authorization
-- **Authentication Provider**: Replit Auth using OpenID Connect protocol
+- **Authentication Provider**: Email/password authentication using Passport.js Local Strategy
 - **Session Management**: Server-side sessions stored in PostgreSQL
 - **Authorization**: Role-based access control with admin/member distinction
-- **Security**: HTTPS enforcement, secure cookies, and CSRF protection
-- **Admin Credentials**: ID: "admin-user-1", email: "admin@baco-bahamas.com", isAdmin: true
+- **Security**: Password hashing with scrypt, secure sessions, and CSRF protection
+- **Admin Credentials**: Email: "admin@baco.com", Password: "admin123", isAdmin: true
 
 ## Payment Processing
 - **Payment Provider**: Stripe for secure credit card processing

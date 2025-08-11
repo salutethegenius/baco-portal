@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 // import Stripe from "stripe";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
@@ -36,24 +36,14 @@ const apiEventSchema = z.object({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Auth routes are now handled in auth.ts
 
   // User routes
   app.get('/api/users/me', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -67,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/users/me', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const updates = req.body;
       
       const user = await storage.upsertUser({
@@ -134,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -156,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -179,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -202,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Event registration routes
   app.get('/api/event-registrations/my', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const registrations = await storage.getUserEventRegistrations(userId);
       res.json(registrations);
     } catch (error) {
@@ -219,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user is authenticated (optional for public events)
       let userId = null;
       if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+        userId = req.user.id;
       }
       
       // Validate event exists and is public
@@ -273,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document routes
   app.get('/api/documents/my', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const documents = await storage.getUserDocuments(userId);
       res.json(documents);
     } catch (error) {
@@ -284,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/documents', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const documentData = insertDocumentSchema.parse({
         ...req.body,
         userId,
@@ -301,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Message routes
   app.get('/api/messages/my', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const messages = await storage.getUserMessages(userId);
       res.json(messages);
     } catch (error) {
@@ -312,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/messages/unread-count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const count = await storage.getUnreadMessageCount(userId);
       res.json({ count });
     } catch (error) {
@@ -323,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const messageData = insertMessageSchema.parse({
         ...req.body,
         fromUserId: userId,
@@ -350,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment routes
   app.get('/api/payments/my', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const payments = await storage.getUserPayments(userId);
       res.json(payments);
     } catch (error) {
@@ -364,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/create-payment-intent', isAuthenticated, async (req: any, res) => {
     try {
       const { amount, type, eventId, description } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
@@ -398,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe subscription for membership fees
   app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       let user = await storage.getUser(userId);
 
       if (!user) {
@@ -470,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object storage routes for documents
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const objectStorageService = new ObjectStorageService();
       
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
@@ -507,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/documents/upload", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { fileName, fileType, fileSize, objectURL, category } = req.body;
 
       if (!objectURL) {
@@ -543,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -560,7 +550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/admin/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -577,7 +567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/admin/documents/:id/status', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.isAdmin) {
@@ -687,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Temporary endpoint to make current user admin (for testing)
   app.post('/api/make-me-admin', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.upsertUser({
         id: userId,
         isAdmin: true,

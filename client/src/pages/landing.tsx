@@ -18,7 +18,7 @@ export default function Landing() {
               </div>
             </div>
             <Button 
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/auth"}
               className="bg-baco-primary hover:bg-baco-secondary"
               data-testid="button-login"
             >
