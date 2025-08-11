@@ -105,6 +105,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public event route by slug (no auth required)
+  app.get('/api/public/events/:slug', async (req, res) => {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event || !event.isPublic) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching public event:", error);
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  // Public events list (no auth required)
+  app.get('/api/public/events', async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      const publicEvents = events.filter(event => event.isPublic);
+      res.json(publicEvents);
+    } catch (error) {
+      console.error("Error fetching public events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
   app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -184,34 +210,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/event-registrations', isAuthenticated, async (req: any, res) => {
+  // Public event registration endpoint (no auth required for public events)
+  app.post('/api/event-registrations', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { eventId, firstName, lastName, email, position, phoneNumber, notes, paymentStatus } = req.body;
+      const { eventId, fullName, email, position, company, phone, notes } = req.body;
       
-      // Get event details to determine payment amount
+      // Validate event exists and is public
       const event = await storage.getEvent(eventId);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
       
+      if (!event.isPublic) {
+        return res.status(403).json({ message: "Event is not public" });
+      }
+      
+      // Check if event is full
+      if (event.maxAttendees && (event.currentAttendees || 0) >= event.maxAttendees) {
+        return res.status(400).json({ message: "Event is full" });
+      }
+      
       const registration = await storage.createEventRegistration({
         eventId,
-        userId,
-        firstName,
-        lastName,
+        firstName: fullName.split(' ')[0] || fullName,
+        lastName: fullName.split(' ').slice(1).join(' ') || '',
         email,
         position,
-        phoneNumber,
+        phoneNumber: phone,
         notes,
-        paymentAmount: event.price.toString(),
-        paymentStatus: paymentStatus || "pending",
+        paymentAmount: event.price?.toString() || "0.00",
+        paymentStatus: "pending",
       });
       
-      res.json(registration);
+      // Update event attendee count
+      await storage.updateEvent(eventId, {
+        currentAttendees: (event.currentAttendees || 0) + 1
+      });
+      
+      res.status(201).json(registration);
     } catch (error) {
       console.error("Error creating event registration:", error);
-      res.status(500).json({ message: "Failed to register for event" });
+      res.status(500).json({ message: "Failed to create event registration" });
     }
   });
 

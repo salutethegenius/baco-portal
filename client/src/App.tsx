@@ -14,6 +14,7 @@ import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Checkout from "@/pages/checkout";
 import EventDetail from "@/pages/event-detail";
+import PublicEvent from "@/pages/public-event";
 import { lazy } from "react";
 
 function Router() {
@@ -21,6 +22,10 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes (no auth required) */}
+      <Route path="/events/:slug" component={PublicEvent} />
+      
+      {/* Authenticated routes */}
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

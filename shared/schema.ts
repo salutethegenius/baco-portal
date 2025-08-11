@@ -50,6 +50,7 @@ export const users = pgTable("users", {
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
+  slug: varchar("slug").notNull(),
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
@@ -58,6 +59,7 @@ export const events = pgTable("events", {
   maxAttendees: integer("max_attendees"),
   currentAttendees: integer("current_attendees").default(0),
   status: varchar("status").default("upcoming"), // upcoming, ongoing, completed, cancelled
+  isPublic: boolean("is_public").default(true),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

@@ -1,227 +1,321 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { X } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import type { Event } from "@shared/schema";
+
+const registrationSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  position: z.string().min(2, "Position/title must be at least 2 characters"),
+  company: z.string().min(2, "Company/organization must be at least 2 characters"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  notes: z.string().optional(),
+});
+
+type RegistrationData = z.infer<typeof registrationSchema>;
 
 interface EventRegistrationFormProps {
-  event: any;
+  event: Event;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function EventRegistrationForm({ event, onClose, onSuccess }: EventRegistrationFormProps) {
+export default function EventRegistrationForm({
+  event,
+  onClose,
+  onSuccess,
+}: EventRegistrationFormProps) {
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    position: "",
-    phoneNumber: "",
-    notes: "",
+
+  const form = useForm<RegistrationData>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      position: "",
+      company: "",
+      phone: "",
+      notes: "",
+    },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (registrationData: typeof formData) => {
+  const registrationMutation = useMutation({
+    mutationFn: async (data: RegistrationData) => {
       const response = await apiRequest("POST", "/api/event-registrations", {
         eventId: event.id,
-        ...registrationData,
-        paymentStatus: "pending", // Will be updated when payment is processed later
+        ...data,
       });
       return response.json();
     },
     onSuccess: () => {
+      setIsSubmitted(true);
       toast({
-        title: "Registration Submitted",
-        description: "Your registration has been submitted. We'll contact you with payment instructions.",
+        title: "Registration Successful",
+        description: "Your registration has been submitted successfully!",
+        variant: "default",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/event-registrations/my"] });
-      onSuccess();
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
     },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Login Required",
-          description: "Please log in to register for events.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1500);
-        return;
-      }
+    onError: (error: any) => {
+      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
-        description: error.message,
+        description: error.message || "Failed to submit registration. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (!formData.firstName || !formData.lastName || !formData.email) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in your name and email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    registerMutation.mutate(formData);
+  const onSubmit = (data: RegistrationData) => {
+    registrationMutation.mutate(data);
   };
 
-  const handleInputChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <CardHeader className="relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="absolute right-2 top-2 h-6 w-6 p-0"
-            data-testid="button-close-registration-form"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <CardTitle className="pr-8">Register for Event</CardTitle>
-          <div className="text-sm text-gray-600">
-            <p className="font-medium">{event.title}</p>
-            <p>
-              {new Date(event.startDate).toLocaleDateString()} at{" "}
-              {new Date(event.startDate).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-            {event.price > 0 && (
-              <p className="font-medium text-primary">${event.price} BSD</p>
-            )}
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="firstName" className="text-sm font-medium">First Name *</label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange("firstName")}
-                  required
-                  data-testid="input-first-name"
-                />
+  if (isSubmitted) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-green-600">
+              Registration Confirmed!
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
               
-              <div className="space-y-2">
-                <label htmlFor="lastName" className="text-sm font-medium">Last Name *</label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange("lastName")}
-                  required
-                  data-testid="input-last-name"
-                />
+              <p className="text-lg font-medium">
+                You're registered for {event.title}!
+              </p>
+              
+              <p className="text-gray-600">
+                We'll send you confirmation details and any updates about the event to your email address.
+              </p>
+              
+              {event.price && parseFloat(event.price) > 0 && (
+                <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                  <strong>Payment Instructions:</strong> Our team will contact you separately 
+                  with payment details and instructions for the ${event.price} BSD registration fee.
+                </p>
+              )}
+              
+              <Button
+                onClick={onClose}
+                className="w-full mt-4"
+                data-testid="button-close-confirmation"
+              >
+                Close
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Event Registration</DialogTitle>
+          <DialogDescription>
+            Complete your registration for <strong>{event.title}</strong>
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your full name"
+                        {...field}
+                        data-testid="input-registration-fullname"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="your.email@example.com"
+                        {...field}
+                        data-testid="input-registration-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position/Title *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your job title or role"
+                        {...field}
+                        data-testid="input-registration-position"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company/Organization *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your company or organization"
+                        {...field}
+                        data-testid="input-registration-company"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="+1 (242) 000-0000"
+                      {...field}
+                      data-testid="input-registration-phone"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Any dietary restrictions, accessibility needs, or special requests..."
+                      rows={3}
+                      {...field}
+                      data-testid="textarea-registration-notes"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Event Summary */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Event Summary</h4>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p><strong>Event:</strong> {event.title}</p>
+                {event.startDate && (
+                  <p><strong>Date:</strong> {new Date(event.startDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}</p>
+                )}
+                {event.location && <p><strong>Location:</strong> {event.location}</p>}
+                <p><strong>Fee:</strong> {event.price && parseFloat(event.price) > 0 ? `$${event.price} BSD` : 'Free'}</p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email Address *</label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange("email")}
-                required
-                data-testid="input-email"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="position" className="text-sm font-medium">Position/Title</label>
-              <Input
-                id="position"
-                value={formData.position}
-                onChange={handleInputChange("position")}
-                placeholder="e.g. Compliance Officer, Risk Manager"
-                data-testid="input-position"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={handleInputChange("phoneNumber")}
-                placeholder="e.g. (242) 123-4567"
-                data-testid="input-phone-number"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium">Additional Notes</label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={handleInputChange("notes")}
-                placeholder="Any dietary restrictions, special accommodations, or questions..."
-                rows={3}
-                data-testid="textarea-notes"
-              />
-            </div>
-
-            {event.price > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  <strong>Payment:</strong> This event costs ${event.price} BSD. 
-                  After submitting your registration, we'll contact you with payment instructions.
+            {event.price && parseFloat(event.price) > 0 && (
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Payment Note:</strong> Registration details will be collected now. 
+                  Our team will contact you separately with payment instructions for the ${event.price} BSD fee.
                 </p>
               </div>
             )}
 
-            <div className="flex space-x-3 pt-4">
+            <div className="flex space-x-4">
               <Button
                 type="submit"
-                disabled={registerMutation.isPending}
-                className="flex-1 bg-baco-primary hover:bg-baco-secondary"
+                disabled={registrationMutation.isPending}
+                className="flex-1"
                 data-testid="button-submit-registration"
               >
-                {registerMutation.isPending ? "Submitting..." : "Submit Registration"}
+                {registrationMutation.isPending ? "Submitting..." : "Complete Registration"}
               </Button>
-              
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                disabled={registerMutation.isPending}
+                disabled={registrationMutation.isPending}
+                className="flex-1"
                 data-testid="button-cancel-registration"
               >
                 Cancel
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

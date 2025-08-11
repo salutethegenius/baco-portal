@@ -20,6 +20,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, count } from "drizzle-orm";
+import { generateSlug, ensureUniqueSlug } from "@shared/utils";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -31,6 +32,7 @@ export interface IStorage {
   // Event operations
   getEvents(): Promise<Event[]>;
   getEvent(id: string): Promise<Event | undefined>;
+  getEventBySlug(slug: string): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
@@ -126,8 +128,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEvent(event: InsertEvent): Promise<Event> {
-    const [newEvent] = await db.insert(events).values(event).returning();
+    // Generate unique slug from title
+    const baseSlug = generateSlug(event.title);
+    const existingEvents = await db.select({ slug: events.slug }).from(events);
+    const existingSlugs = existingEvents.map(e => e.slug).filter(Boolean) as string[];
+    const uniqueSlug = ensureUniqueSlug(baseSlug, existingSlugs);
+    
+    const [newEvent] = await db.insert(events).values({
+      ...event,
+      slug: uniqueSlug,
+    }).returning();
     return newEvent;
+  }
+
+  async getEventBySlug(slug: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.slug, slug));
+    return event;
   }
 
   async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event> {

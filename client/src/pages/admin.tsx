@@ -726,15 +726,26 @@ export default function Admin() {
                             {event.currentAttendees || 0} / {event.maxAttendees || '∞'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex space-x-2">
+                            <div className="flex space-x-2 flex-wrap gap-1">
                               <Button 
-                                variant="default" 
+                                variant="outline" 
                                 size="sm" 
                                 onClick={() => navigate(`/event/${event.id}`)}
                                 data-testid={`button-view-page-${event.id}`}
                               >
-                                View Page
+                                Internal
                               </Button>
+                              {event.slug && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => window.open(`/events/${event.slug}`, '_blank')}
+                                  data-testid={`button-view-public-event-${event.id}`}
+                                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                >
+                                  Public Page
+                                </Button>
+                              )}
                               <Button 
                                 variant="outline" 
                                 size="sm" 
