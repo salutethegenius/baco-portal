@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/landing";
+import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import Events from "@/pages/events";
 import Documents from "@/pages/documents";
@@ -38,9 +38,12 @@ function Router() {
       <Route path="/events/:slug" component={PublicEvent} />
       <Route path="/member-registration" component={MemberRegistration} />
       
+      {/* Authentication route */}
+      <Route path="/auth" component={AuthPage} />
+      
       {/* Authenticated routes */}
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <Route path="/" component={AuthPage} />
       ) : (
         <>
           <Route path="/" component={Dashboard} />
