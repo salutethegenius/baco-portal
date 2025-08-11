@@ -20,6 +20,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { useEffect } from "react";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useLocation } from "wouter";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -35,6 +36,7 @@ export default function Admin() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [editEventDialogOpen, setEditEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
@@ -725,6 +727,14 @@ export default function Admin() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => navigate(`/event/${event.id}`)}
+                                data-testid={`button-view-page-${event.id}`}
+                              >
+                                View Page
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm" 

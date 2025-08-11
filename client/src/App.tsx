@@ -13,6 +13,7 @@ import Messages from "@/pages/messages";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Checkout from "@/pages/checkout";
+import EventDetail from "@/pages/event-detail";
 import { lazy } from "react";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
+          <Route path="/event/:eventId" component={EventDetail} />
           <Route path="/events/:eventId/register" component={lazy(() => import("@/pages/event-registration"))} />
           <Route path="/messages" component={Messages} />
           <Route path="/documents" component={Documents} />

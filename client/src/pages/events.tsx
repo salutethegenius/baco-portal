@@ -177,39 +177,13 @@ export default function Events() {
                           </div>
                           
                           <div className="flex space-x-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="outline"
-                                  onClick={() => setSelectedEvent(event)}
-                                  data-testid={`button-view-details-${event.id}`}
-                                >
-                                  View Details
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>{selectedEvent?.title}</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <p className="text-gray-600">{selectedEvent?.description}</p>
-                                  <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                      <strong>Date:</strong> {selectedEvent && format(new Date(selectedEvent.startDate), 'MMMM d, yyyy')}
-                                    </div>
-                                    <div>
-                                      <strong>Time:</strong> {selectedEvent && format(new Date(selectedEvent.startDate), 'h:mm a')} - {selectedEvent && format(new Date(selectedEvent.endDate), 'h:mm a')}
-                                    </div>
-                                    <div>
-                                      <strong>Location:</strong> {selectedEvent?.location || 'TBA'}
-                                    </div>
-                                    <div>
-                                      <strong>Price:</strong> {selectedEvent?.price > 0 ? `$${selectedEvent.price} BSD` : 'Free'}
-                                    </div>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                            <Button 
+                              variant="outline"
+                              onClick={() => navigate(`/event/${event.id}`)}
+                              data-testid={`button-view-event-page-${event.id}`}
+                            >
+                              View Event Page
+                            </Button>
                             
                             {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (event.maxAttendees === null || event.maxAttendees === undefined || (event.currentAttendees || 0) < event.maxAttendees) && (
                               <Button
