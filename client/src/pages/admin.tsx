@@ -20,6 +20,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { useEffect } from "react";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useLocation } from "wouter";
 
 const eventSchema = z.object({
@@ -890,6 +891,13 @@ export default function Admin() {
                                 >
                                   Public Page
                                 </Button>
+                              )}
+                              {event.slug && (
+                                <QRCodeGenerator 
+                                  eventId={event.id}
+                                  eventTitle={event.title}
+                                  eventSlug={event.slug}
+                                />
                               )}
                               <Button 
                                 variant="outline" 

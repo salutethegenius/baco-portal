@@ -7,6 +7,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import QRCode from "qrcode";
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -695,6 +696,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error making user admin:", error);
       res.status(500).json({ message: "Failed to make user admin" });
+    }
+  });
+
+  // QR Code generation endpoint
+  app.post("/api/generate-qr-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const { url, title } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Generate QR code as data URL
+      const qrCodeDataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        quality: 0.92,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        width: 300
+      });
+
+      res.json({
+        qrCode: qrCodeDataUrl,
+        url: url,
+        title: title || 'Event QR Code'
+      });
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      res.status(500).json({ error: "Failed to generate QR code" });
     }
   });
 
