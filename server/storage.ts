@@ -27,7 +27,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: UpsertUser): Promise<User>;
   getAllUsersDetailed(): Promise<User[]>;
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User>;
   updateUserMembershipStatus(userId: string, status: string, nextPaymentDate?: Date): Promise<User>;
@@ -101,7 +101,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: InsertUser): Promise<User> {
+  async createUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -189,9 +189,8 @@ export class DatabaseStorage implements IStorage {
     return updatedEvent;
   }
 
-  async deleteEvent(id: string): Promise<boolean> {
-    const result = await db.delete(events).where(eq(events.id, id));
-    return result.rowCount > 0;
+  async deleteEvent(id: string): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
   }
 
   // Event registration operations
@@ -343,20 +342,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllDocuments(): Promise<(Document & { user: User })[]> {
-    return await db
+    const results = await db
       .select()
       .from(documents)
       .innerJoin(users, eq(documents.userId, users.id))
       .orderBy(desc(documents.uploadDate));
+    
+    return results.map(result => ({
+      ...result.documents,
+      user: result.users
+    }));
   }
 
   async getAllMessages(): Promise<(Message & { fromUser: User; toUser: User })[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        message: messages,
+        fromUser: users,
+        toUser: users
+      })
       .from(messages)
       .innerJoin(users, eq(messages.fromUserId, users.id))
       .innerJoin(users, eq(messages.toUserId, users.id))
       .orderBy(desc(messages.sentAt));
+    
+    return results.map(result => ({
+      ...result.message,
+      fromUser: result.fromUser,
+      toUser: result.toUser
+    }));
   }
 
   async getUserStats(): Promise<{ totalMembers: number; activeMembers: number; pendingDocuments: number; }> {
@@ -381,9 +395,9 @@ export class DatabaseStorage implements IStorage {
   // It ensures that there's at least one admin user and some sample events for testing.
   async initializeDatabase(): Promise<void> {
     // Create sample admin user if none exists
-    const adminExists = await this.db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
+    const adminExists = await db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
     if (adminExists.length === 0) {
-      await this.db.insert(users).values({
+      await db.insert(users).values({
         id: "admin-user-1",
         email: "admin@baco-bahamas.com",
         firstName: "Admin",
@@ -395,12 +409,12 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Create sample events if none exist
-    const existingEvents = await this.db.select().from(events).limit(1);
+    const existingEvents = await db.select().from(events).limit(1);
     if (existingEvents.length === 0) {
-      const adminUser = await this.db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
+      const adminUser = await db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
       const adminId = adminUser.length > 0 ? adminUser[0].id : "admin-user-1";
 
-      await this.db.insert(events).values([
+      await db.insert(events).values([
         {
           id: "evt_001",
           title: "BACO Annual Conference 2024",
