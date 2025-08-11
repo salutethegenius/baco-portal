@@ -195,7 +195,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event> {
-    const [event] = await this.db
+    const [event] = await db
       .update(events)
       .set({ 
         flyerObjectPath,
