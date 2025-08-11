@@ -58,10 +58,10 @@ export default function Events() {
     },
   });
 
-  const upcomingEvents = events.filter((event: any) => new Date(event.startDate) > new Date());
-  const pastEvents = events.filter((event: any) => new Date(event.startDate) <= new Date());
+  const upcomingEvents = (events || []).filter((event: any) => new Date(event.startDate) > new Date());
+  const pastEvents = (events || []).filter((event: any) => new Date(event.startDate) <= new Date());
   
-  const registeredEventIds = new Set(myRegistrations.map((reg: any) => reg.eventId || reg.event?.id));
+  const registeredEventIds = new Set((myRegistrations || []).map((reg: any) => reg.eventId || reg.event?.id));
 
   const isRegistered = (eventId: string) => registeredEventIds.has(eventId);
 
@@ -97,7 +97,7 @@ export default function Events() {
               Past Events ({pastEvents.length})
             </TabsTrigger>
             <TabsTrigger value="registered" data-testid="tab-my-registrations">
-              My Registrations ({myRegistrations.length})
+              My Registrations ({(myRegistrations || []).length})
             </TabsTrigger>
           </TabsList>
 
@@ -233,8 +233,8 @@ export default function Events() {
           </TabsContent>
 
           <TabsContent value="registered" className="space-y-6">
-            {myRegistrations.length > 0 ? (
-              myRegistrations.map((registration: any) => (
+            {(myRegistrations || []).length > 0 ? (
+              (myRegistrations || []).map((registration: any) => (
                 <Card key={registration.id}>
                   <CardContent className="p-6">
                     <EventCard 
