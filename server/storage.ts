@@ -40,6 +40,7 @@ export interface IStorage {
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
   getUserEventRegistrations(userId: string): Promise<(EventRegistration & { event: Event })[]>;
+  getUserEventRegistration(userId: string, eventId: string): Promise<EventRegistration | undefined>;
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration>;
 
@@ -166,12 +167,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserEventRegistrations(userId: string): Promise<(EventRegistration & { event: Event })[]> {
-    return await db
+    const results = await db
       .select()
       .from(eventRegistrations)
       .innerJoin(events, eq(eventRegistrations.eventId, events.id))
       .where(eq(eventRegistrations.userId, userId))
       .orderBy(desc(events.startDate));
+    
+    // Transform the joined results to match the expected type
+    return results.map(result => ({
+      ...result.event_registrations,
+      event: result.events
+    }));
+  }
+
+  async getUserEventRegistration(userId: string, eventId: string): Promise<EventRegistration | undefined> {
+    const [registration] = await db
+      .select()
+      .from(eventRegistrations)
+      .where(and(eq(eventRegistrations.userId, userId), eq(eventRegistrations.eventId, eventId)));
+    return registration;
   }
 
   async createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration> {

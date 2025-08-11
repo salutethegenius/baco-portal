@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, Users, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import EventRegistrationForm from "@/components/EventRegistrationForm";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function PublicEvent() {
   const { slug } = useParams();
+  const [, setLocation] = useLocation();
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   // Fetch event by slug using public API (no auth required)
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
@@ -24,6 +27,11 @@ export default function PublicEvent() {
 
   const handleRegistrationSuccess = () => {
     setShowRegistrationForm(false);
+    
+    // If user is authenticated, redirect to events page to see their registrations
+    if (isAuthenticated) {
+      setLocation("/events");
+    }
   };
 
   if (eventLoading) {

@@ -210,10 +210,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public event registration endpoint (no auth required for public events)
+  // Public event registration endpoint (works for both authenticated and non-authenticated users)
   app.post('/api/event-registrations', async (req, res) => {
     try {
       const { eventId, fullName, email, position, company, phone, notes } = req.body;
+      
+      // Check if user is authenticated (optional for public events)
+      let userId = null;
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
       
       // Validate event exists and is public
       const event = await storage.getEvent(eventId);
@@ -230,9 +236,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Event is full" });
       }
       
+      // Check if user is already registered for this event
+      if (userId) {
+        const existingRegistration = await storage.getUserEventRegistration(userId, eventId);
+        if (existingRegistration) {
+          return res.status(400).json({ message: "You are already registered for this event" });
+        }
+      }
+      
       const registration = await storage.createEventRegistration({
         eventId,
-        userId: null, // Public registration without user account
+        userId, // Will be null for non-authenticated users, or user ID for authenticated users
         firstName: fullName.split(' ')[0] || fullName,
         lastName: fullName.split(' ').slice(1).join(' ') || '',
         email,
