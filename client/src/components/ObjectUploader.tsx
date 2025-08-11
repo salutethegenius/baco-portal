@@ -50,7 +50,7 @@ interface ObjectUploaderProps {
  * @param props.buttonClassName - Optional CSS class name for the button
  * @param props.children - Content to be rendered inside the button
  */
-export function ObjectUploader({
+function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 10485760, // 10MB default
   onGetUploadParameters,
@@ -91,3 +91,6 @@ export function ObjectUploader({
     </div>
   );
 }
+
+export { ObjectUploader };
+export default ObjectUploader;
