@@ -168,6 +168,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload flyer for event
+  app.put("/api/events/:id/flyer", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { objectURL } = req.body;
+      const eventId = req.params.id;
+
+      if (!objectURL) {
+        return res.status(400).json({ error: "objectURL is required" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        objectURL,
+        {
+          owner: userId,
+          visibility: "public",
+        },
+      );
+
+      // Update event with flyer path
+      const event = await storage.updateEventFlyer(eventId, objectPath);
+      
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      res.json({ event, objectPath });
+    } catch (error) {
+      console.error("Error uploading event flyer:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.delete('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;

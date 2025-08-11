@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useLocation } from "wouter";
+import ObjectUploader from "@/components/ObjectUploader";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -216,7 +217,7 @@ export default function Admin() {
     // Format dates for datetime-local input
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
-    
+
     form.reset({
       title: event.title,
       description: event.description,
@@ -464,7 +465,7 @@ export default function Admin() {
                                         </div>
                                       )}
                                     </div>
-                                    
+
                                     <div className="flex gap-2 pt-4 border-t">
                                       {!member.isAdmin && (
                                         <Button
@@ -542,7 +543,7 @@ export default function Admin() {
                       <DialogHeader>
                         <DialogTitle>Create New Event</DialogTitle>
                       </DialogHeader>
-                      
+
                       <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                           <FormField
@@ -650,18 +651,33 @@ export default function Admin() {
                               name="maxAttendees"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Max Attendees</FormLabel>
+                                  <FormLabel>Maximum Attendees</FormLabel>
                                   <FormControl>
                                     <Input 
-                                      type="number" 
                                       {...field} 
-                                      data-testid="input-event-max-attendees"
+                                      type="number" 
+                                      min="1"
+                                      data-testid="input-max-attendees" 
                                     />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+
+                            <div className="space-y-2">
+                              <FormLabel>Event Flyer (Optional)</FormLabel>
+                              <ObjectUploader
+                                onUploadComplete={(objectPath) => {
+                                  console.log("Flyer uploaded:", objectPath);
+                                }}
+                                accept="image/*"
+                                maxSizeMB={5}
+                              />
+                              <p className="text-sm text-gray-500">
+                                Upload a flyer image for the event (JPG, PNG, max 5MB)
+                              </p>
+                            </div>
                           </div>
 
                           <div className="flex space-x-4">
@@ -800,12 +816,13 @@ export default function Admin() {
                               name="maxAttendees"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Max Attendees</FormLabel>
+                                  <FormLabel>Maximum Attendees</FormLabel>
                                   <FormControl>
                                     <Input 
-                                      type="number" 
                                       {...field} 
-                                      data-testid="input-edit-event-max-attendees"
+                                      type="number" 
+                                      min="1"
+                                      data-testid="input-edit-event-max-attendees" 
                                     />
                                   </FormControl>
                                   <FormMessage />

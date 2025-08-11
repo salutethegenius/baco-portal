@@ -27,7 +27,7 @@ export default function PublicEvent() {
 
   const handleRegistrationSuccess = () => {
     setShowRegistrationForm(false);
-    
+
     // If user is authenticated, redirect to events page to see their registrations
     if (isAuthenticated) {
       setLocation("/events");
@@ -153,62 +153,22 @@ export default function PublicEvent() {
             <Card className="sticky top-8">
               <CardHeader>
                 <CardTitle>Event Registration</CardTitle>
-                <CardDescription>
-                  {isPastEvent
-                    ? "This event has ended"
-                    : "Register for this event"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Capacity Info */}
-                {event.maxAttendees && (
-                  <div className="flex items-center space-x-3">
-                    <Users className="h-5 w-5 text-gray-400" />
-                    <div className="flex-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Capacity</span>
-                        <span>{event.currentAttendees || 0} / {event.maxAttendees}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div
-                          className="bg-baco-primary h-2 rounded-full transition-all"
-                          style={{
-                            width: `${Math.min(((event.currentAttendees || 0) / event.maxAttendees) * 100, 100)}%`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <CardDescription className="text-lg">
+              {event.description}
+            </CardDescription>
 
-                {/* Price Display */}
-                <div className="text-center py-4">
-                  <div className="text-3xl font-bold text-baco-primary">
-                    {event.price && parseFloat(event.price) > 0
-                      ? `$${event.price}`
-                      : "FREE"}
-                  </div>
-                  {event.price && parseFloat(event.price) > 0 && (
-                    <div className="text-sm text-gray-500">BSD</div>
-                  )}
-                </div>
-
-                {/* Registration Button */}
-                <Button
-                  className="w-full"
-                  variant={registrationStatus.variant as any}
-                  disabled={registrationStatus.disabled}
-                  onClick={() => setShowRegistrationForm(true)}
-                  data-testid="button-register-event"
-                >
-                  {registrationStatus.text}
-                </Button>
-
-                <p className="text-xs text-gray-500 text-center">
-                  Registration details will be collected. Payment instructions sent separately if applicable.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Event Flyer */}
+            {event.flyerImageUrl && (
+              <div className="mt-6">
+                <img 
+                  src={event.flyerImageUrl} 
+                  alt={`${event.title} flyer`}
+                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+                />
+              </div>
+            )}
+          </CardHeader>
+        </Card>
           </div>
         </div>
       </div>

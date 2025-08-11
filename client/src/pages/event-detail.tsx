@@ -108,6 +108,17 @@ export default function EventDetail() {
             <CardDescription className="text-lg" data-testid="text-event-description">
               {event.description}
             </CardDescription>
+
+            {/* Event Flyer */}
+            {event.flyerImageUrl && (
+              <div className="mt-6">
+                <img 
+                  src={event.flyerImageUrl} 
+                  alt={`${event.title} flyer`}
+                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+                />
+              </div>
+            )}
           </CardHeader>
         </Card>
 

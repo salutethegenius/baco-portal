@@ -40,6 +40,7 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
+  updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event>;
 
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
@@ -167,7 +168,7 @@ export class DatabaseStorage implements IStorage {
     const existingEvents = await db.select({ slug: events.slug }).from(events);
     const existingSlugs = existingEvents.map(e => e.slug).filter(Boolean) as string[];
     const uniqueSlug = ensureUniqueSlug(baseSlug, existingSlugs);
-    
+
     const [newEvent] = await db.insert(events).values({
       ...event,
       slug: uniqueSlug,
@@ -180,17 +181,30 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
-  async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event> {
-    const [updatedEvent] = await db
+  async updateEvent(id: string, eventData: Partial<InsertEvent>): Promise<Event> {
+    const [event] = await db
       .update(events)
-      .set({ ...event, updatedAt: new Date() })
+      .set({ ...eventData, updatedAt: new Date() })
       .where(eq(events.id, id))
       .returning();
-    return updatedEvent;
+    return event;
   }
 
   async deleteEvent(id: string): Promise<void> {
     await db.delete(events).where(eq(events.id, id));
+  }
+
+  async updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event> {
+    const [event] = await this.db
+      .update(events)
+      .set({ 
+        flyerObjectPath,
+        flyerImageUrl: `/objects${flyerObjectPath}`,
+        updatedAt: new Date() 
+      })
+      .where(eq(events.id, id))
+      .returning();
+    return event;
   }
 
   // Event registration operations
@@ -205,7 +219,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(events, eq(eventRegistrations.eventId, events.id))
       .where(eq(eventRegistrations.userId, userId))
       .orderBy(desc(events.startDate));
-    
+
     // Transform the joined results to match the expected type
     return results.map(result => ({
       ...result.event_registrations,
@@ -347,7 +361,7 @@ export class DatabaseStorage implements IStorage {
       .from(documents)
       .innerJoin(users, eq(documents.userId, users.id))
       .orderBy(desc(documents.uploadDate));
-    
+
     return results.map(result => ({
       ...result.documents,
       user: result.users
@@ -365,7 +379,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(messages.fromUserId, users.id))
       .innerJoin(users, eq(messages.toUserId, users.id))
       .orderBy(desc(messages.sentAt));
-    
+
     return results.map(result => ({
       ...result.message,
       fromUser: result.fromUser,
