@@ -189,7 +189,7 @@ export default function Events() {
                               </DialogContent>
                             </Dialog>
                             
-                            {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (
+                            {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (!event.maxAttendees || event.currentAttendees < event.maxAttendees) && (
                               <Button
                                 onClick={() => navigate(`/events/${event.id}/register`)}
                                 className="bg-baco-primary hover:bg-baco-secondary"
