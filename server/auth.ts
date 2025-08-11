@@ -160,6 +160,13 @@ export function setupAuth(app: Express) {
     });
   });
 
+  app.get("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.redirect("/");
+    });
+  });
+
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });

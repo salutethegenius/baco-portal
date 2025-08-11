@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function Header() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
 
   const navigation = [
@@ -65,7 +65,7 @@ export default function Header() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = "/api/logout"}
+              onClick={() => logout()}
             >
               Logout
             </Button>
