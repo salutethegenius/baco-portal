@@ -464,6 +464,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary endpoint to make current user admin (for testing)
+  app.post('/api/make-me-admin', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.upsertUser({
+        id: userId,
+        isAdmin: true,
+      });
+      res.json({ message: "You are now an admin", user });
+    } catch (error) {
+      console.error("Error making user admin:", error);
+      res.status(500).json({ message: "Failed to make user admin" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

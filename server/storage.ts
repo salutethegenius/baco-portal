@@ -27,39 +27,39 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User>;
   updateUserMembershipStatus(userId: string, status: string, nextPaymentDate?: Date): Promise<User>;
-  
+
   // Event operations
   getEvents(): Promise<Event[]>;
   getEvent(id: string): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
-  
+
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
   getUserEventRegistrations(userId: string): Promise<(EventRegistration & { event: Event })[]>;
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration>;
-  
+
   // Document operations
   getUserDocuments(userId: string): Promise<Document[]>;
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocumentStatus(id: string, status: string, verifiedBy?: string): Promise<Document>;
   deleteDocument(id: string): Promise<void>;
-  
+
   // Message operations
   getUserMessages(userId: string): Promise<Message[]>;
   getMessage(id: string): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: string): Promise<Message>;
   getUnreadMessageCount(userId: string): Promise<number>;
-  
+
   // Payment operations
   getUserPayments(userId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string): Promise<Payment>;
-  
+
   // Admin operations
   getAllUsers(): Promise<User[]>;
   getAllDocuments(): Promise<(Document & { user: User })[]>;
@@ -159,7 +159,7 @@ export class DatabaseStorage implements IStorage {
 
   async createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration> {
     const [newRegistration] = await db.insert(eventRegistrations).values(registration).returning();
-    
+
     // Update event attendee count
     await db
       .update(events)
@@ -168,7 +168,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(events.id, registration.eventId));
-    
+
     return newRegistration;
   }
 
@@ -320,6 +320,87 @@ export class DatabaseStorage implements IStorage {
       activeMembers: activeMembersResult.count,
       pendingDocuments: pendingDocumentsResult.count,
     };
+  }
+
+  // This method initializes the database with sample data if it's empty.
+  // It ensures that there's at least one admin user and some sample events for testing.
+  async initializeDatabase(): Promise<void> {
+    // Create sample admin user if none exists
+    const adminExists = await this.db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
+    if (adminExists.length === 0) {
+      await this.db.insert(users).values({
+        id: "admin-user-1",
+        email: "admin@baco-bahamas.com",
+        firstName: "Admin",
+        lastName: "User",
+        isAdmin: true,
+        membershipStatus: "active",
+      });
+      console.log("Sample admin user created");
+    }
+
+    // Create sample events if none exist
+    const existingEvents = await this.db.select().from(events).limit(1);
+    if (existingEvents.length === 0) {
+      const adminUser = await this.db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
+      const adminId = adminUser.length > 0 ? adminUser[0].id : "admin-user-1";
+
+      await this.db.insert(events).values([
+        {
+          id: "evt_001",
+          title: "BACO Annual Conference 2024",
+          description: "Join us for our premier annual conference featuring industry experts, networking opportunities, and professional development sessions. This year's theme focuses on emerging compliance challenges in the digital age.",
+          startDate: new Date("2024-03-15T09:00:00Z"),
+          endDate: new Date("2024-03-15T17:00:00Z"),
+          location: "Atlantis Paradise Island, Nassau",
+          price: "150.00",
+          maxAttendees: 200,
+          currentAttendees: 45,
+          status: "upcoming",
+          createdBy: adminId,
+        },
+        {
+          id: "evt_002", 
+          title: "Regulatory Updates Workshop",
+          description: "Stay current with the latest regulatory changes affecting compliance professionals in the Bahamas. Interactive workshop with Q&A sessions.",
+          startDate: new Date("2024-02-28T14:00:00Z"),
+          endDate: new Date("2024-02-28T16:00:00Z"),
+          location: "BACO Training Center, Nassau",
+          price: "75.00",
+          maxAttendees: 50,
+          currentAttendees: 12,
+          status: "upcoming",
+          createdBy: adminId,
+        },
+        {
+          id: "evt_003",
+          title: "Monthly Networking Mixer",
+          description: "Casual networking event for BACO members. Light refreshments provided. Great opportunity to connect with fellow compliance professionals.",
+          startDate: new Date("2024-02-20T18:00:00Z"),
+          endDate: new Date("2024-02-20T20:00:00Z"),
+          location: "British Colonial Hilton, Nassau",
+          price: "0.00",
+          maxAttendees: 100,
+          currentAttendees: 23,
+          status: "upcoming",
+          createdBy: adminId,
+        },
+        {
+          id: "evt_004",
+          title: "Anti-Money Laundering Certification",
+          description: "Comprehensive AML certification course approved by regulatory authorities. Includes materials and certificate upon completion.",
+          startDate: new Date("2024-04-10T09:00:00Z"),
+          endDate: new Date("2024-04-11T17:00:00Z"),
+          location: "BACO Training Center, Nassau",
+          price: "250.00",
+          maxAttendees: 30,
+          currentAttendees: 8,
+          status: "upcoming",
+          createdBy: adminId,
+        }
+      ]);
+      console.log("Sample events created");
+    }
   }
 }
 
