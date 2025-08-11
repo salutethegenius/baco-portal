@@ -35,6 +35,13 @@ const memberRegistrationSchema = z.object({
   homePhone: z.string().min(10, "Home phone is required"),
   cellPhone: z.string().min(10, "Cell phone is required"),
   homeAddress: z.string().min(10, "Home address is required"),
+  businessAddress: z.string().optional(),
+  
+  // Personal Details (matching BACO form)
+  placeOfBirth: z.string().min(2, "Place of birth is required"),
+  nationality: z.string().min(2, "Nationality is required"),
+  bahamasResident: z.boolean(),
+  yearsInBahamas: z.number().optional(),
   
   // Professional Information (exact BACO fields)
   professionalQualifications: z.string().min(10, "List of Professional Qualifications is required"),
@@ -42,6 +49,7 @@ const memberRegistrationSchema = z.object({
   currentEmployer: z.string().min(2, "Current employer is required"),
   positionHeld: z.string().min(2, "Position held is required"),
   durationInPosition: z.string().min(1, "Duration in this position is required"),
+  yearsExperience: z.number().min(0, "Years of experience is required"),
   
   // Membership Level
   membershipType: z.enum(["academic", "associate", "professional", "bccp", "regulator"]),
@@ -78,6 +86,7 @@ export default function MemberRegistration() {
     resolver: zodResolver(memberRegistrationSchema),
     defaultValues: {
       registrationType: "new",
+      bahamasResident: false,
       membershipType: "professional",
       professionalMisconductSubject: false,
       professionalMisconductPending: false,
@@ -116,11 +125,6 @@ export default function MemberRegistration() {
   };
 
   const registrationType = form.watch("registrationType");
-  const showExplanation = form.watch("professionalMisconductSubject") || 
-    form.watch("professionalMisconductPending") || 
-    form.watch("criminalConviction") || 
-    form.watch("bankruptcyHistory") || 
-    form.watch("regulatoryRegistration");
 
   if (isSubmitted) {
     return (
@@ -177,7 +181,6 @@ export default function MemberRegistration() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                
                 {/* Registration Type */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Registration Type</h3>
@@ -418,38 +421,6 @@ export default function MemberRegistration() {
                   />
                 </div>
 
-                {/* Membership Type */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Membership Level</h3>
-                  <FormField
-                    control={form.control}
-                    name="membershipType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Membership Level *</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-membership-type">
-                              <SelectValue placeholder="Select membership level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="academic">Academic and Student - $100</SelectItem>
-                            <SelectItem value="associate">Associate - $200</SelectItem>
-                            <SelectItem value="professional">Professional - $250</SelectItem>
-                            <SelectItem value="bccp">BCCP (BACO Certified Compliance Professional) - $300</SelectItem>
-                            <SelectItem value="regulator">Regulator Observer - Free</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                    <p><strong>Note:</strong> Regulators enjoy Observer Status with benefits of Associate Members without membership fees.</p>
-                  </div>
-                </div>
-
                 {/* Background Check Questions */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Background Information</h3>
@@ -564,7 +535,11 @@ export default function MemberRegistration() {
                     />
                   </div>
                   
-                  {showExplanation && (
+                  {(form.watch("professionalMisconductSubject") || 
+                    form.watch("professionalMisconductPending") || 
+                    form.watch("criminalConviction") || 
+                    form.watch("bankruptcyHistory") || 
+                    form.watch("regulatoryRegistration")) && (
                     <FormField
                       control={form.control}
                       name="backgroundExplanation"
@@ -651,8 +626,97 @@ export default function MemberRegistration() {
                     />
                   </div>
                 </div>
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="First name" {...field} data-testid="input-first-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Last name" {...field} data-testid="input-last-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address *</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="your.email@example.com" {...field} data-testid="input-email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dateOfBirth"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date of Birth *</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} data-testid="input-date-of-birth" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
-                {/* Declaration and Agreement */}
+                {/* Membership Type */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Membership Level</h3>
+                  <FormField
+                    control={form.control}
+                    name="membershipType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Membership Level *</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-membership-type">
+                              <SelectValue placeholder="Select membership level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="academic">Academic and Student - $100</SelectItem>
+                            <SelectItem value="associate">Associate - $200</SelectItem>
+                            <SelectItem value="professional">Professional - $250</SelectItem>
+                            <SelectItem value="bccp">BCCP (BACO Certified Compliance Professional) - $300</SelectItem>
+                            <SelectItem value="regulator">Regulator Observer - Free</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                    <p><strong>Note:</strong> Regulators enjoy Observer Status with benefits of Associate Members without membership fees.</p>
+                  </div>
+                </div>
+
+                {/* Declaration and Agreement (exact BACO wording) */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Declaration and Agreement</h3>
                   
