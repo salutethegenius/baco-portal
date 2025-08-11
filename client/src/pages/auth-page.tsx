@@ -253,17 +253,7 @@ export default function AuthPage() {
                     </CardContent>
                   </Card>
                   
-                  {/* Member Registration Link */}
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-2">
-                      Want to become a BACO member?
-                    </p>
-                    <Link href="/member-registration">
-                      <Button variant="outline" className="w-full" data-testid="button-member-registration">
-                        Apply for BACO Membership
-                      </Button>
-                    </Link>
-                  </div>
+
                 </TabsContent>
               </Tabs>
               
