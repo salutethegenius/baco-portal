@@ -191,8 +191,7 @@ export default function Events() {
                             
                             {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (
                               <Button
-                                onClick={() => registerMutation.mutate(event)}
-                                disabled={registerMutation.isPending}
+                                onClick={() => navigate(`/events/${event.id}/register`)}
                                 className="bg-baco-primary hover:bg-baco-secondary"
                                 data-testid={`button-register-${event.id}`}
                               >

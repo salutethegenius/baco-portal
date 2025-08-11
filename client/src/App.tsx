@@ -13,6 +13,7 @@ import Messages from "@/pages/messages";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Checkout from "@/pages/checkout";
+import { lazy } from "react";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,11 +26,12 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
-          <Route path="/documents" component={Documents} />
+          <Route path="/events/:eventId/register" component={lazy(() => import("@/pages/event-registration"))} />
           <Route path="/messages" component={Messages} />
+          <Route path="/documents" component={Documents} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
-          <Route path="/checkout/:type/:id?" component={Checkout} />
+          <Route path="/checkout/:type/:id" component={Checkout} />
         </>
       )}
       <Route component={NotFound} />
