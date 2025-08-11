@@ -11,12 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Events() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const { user } = useAuth();
 
   const { data: events = [] } = useQuery({
     queryKey: ["/api/events"],
@@ -81,11 +83,23 @@ export default function Events() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Events</h1>
-          <p className="text-gray-600">
-            Discover and register for BACO professional development events and workshops.
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Events</h1>
+            <p className="text-gray-600">
+              Discover and register for BACO professional development events and workshops.
+            </p>
+          </div>
+          {user?.isAdmin && (
+            <Button
+              onClick={() => navigate("/admin")}
+              className="bg-baco-primary hover:bg-baco-secondary"
+              data-testid="button-create-event"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              Create Event
+            </Button>
+          )}
         </div>
 
         <Tabs defaultValue="upcoming" className="space-y-6">
