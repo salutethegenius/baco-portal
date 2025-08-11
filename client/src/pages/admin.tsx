@@ -169,9 +169,61 @@ export default function Admin() {
     createEventMutation.mutate(data);
   };
 
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: z.infer<typeof eventSchema> }) => {
+      const response = await apiRequest("PUT", `/api/events/${id}`, {
+        ...data,
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(data.endDate).toISOString(),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Updated",
+        description: "The event has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setEditEventDialogOpen(false);
+      setEditingEvent(null);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteEvent = (eventId: string, eventTitle: string) => {
     if (window.confirm(`Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`)) {
       deleteEventMutation.mutate(eventId);
+    }
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    // Format dates for datetime-local input
+    const startDate = new Date(event.startDate);
+    const endDate = new Date(event.endDate);
+    
+    form.reset({
+      title: event.title,
+      description: event.description,
+      startDate: startDate.toISOString().slice(0, 16),
+      endDate: endDate.toISOString().slice(0, 16),
+      location: event.location || "",
+      price: event.price.toString(),
+      maxAttendees: event.maxAttendees?.toString() || "50",
+    });
+    setEditEventDialogOpen(true);
+  };
+
+  const handleEditSubmit = (data: z.infer<typeof eventSchema>) => {
+    if (editingEvent) {
+      updateEventMutation.mutate({ id: editingEvent.id, data });
     }
   };
 
@@ -486,6 +538,160 @@ export default function Admin() {
                       </Form>
                     </DialogContent>
                   </Dialog>
+
+                  {/* Edit Event Dialog */}
+                  <Dialog open={editEventDialogOpen} onOpenChange={setEditEventDialogOpen}>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Edit Event</DialogTitle>
+                      </DialogHeader>
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleEditSubmit)} className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Event Title</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-edit-event-title" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} data-testid="textarea-edit-event-description" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="startDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Start Date & Time</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="datetime-local" 
+                                      {...field} 
+                                      data-testid="input-edit-event-start-date"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="endDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>End Date & Time</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="datetime-local" 
+                                      {...field} 
+                                      data-testid="input-edit-event-end-date"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Location</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-edit-event-location" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="price"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Price (BSD)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      step="0.01" 
+                                      {...field} 
+                                      data-testid="input-edit-event-price"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="maxAttendees"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Max Attendees</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      {...field} 
+                                      data-testid="input-edit-event-max-attendees"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="flex space-x-4">
+                            <Button
+                              type="submit"
+                              disabled={updateEventMutation.isPending}
+                              className="bg-baco-primary hover:bg-baco-secondary"
+                              data-testid="button-submit-edit-event"
+                            >
+                              {updateEventMutation.isPending ? "Updating..." : "Update Event"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setEditEventDialogOpen(false);
+                                setEditingEvent(null);
+                                form.reset();
+                              }}
+                              data-testid="button-cancel-edit-event"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
@@ -519,6 +725,14 @@ export default function Admin() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditEvent(event)}
+                                data-testid={`button-edit-event-${event.id}`}
+                              >
+                                Edit
+                              </Button>
                               <Button 
                                 variant="destructive" 
                                 size="sm" 
