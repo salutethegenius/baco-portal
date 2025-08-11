@@ -135,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const event = await storage.createEvent({
         ...eventData,
         createdBy: userId,
+        slug: eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       });
       
       res.json(event);
@@ -176,12 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const success = await storage.deleteEvent(req.params.id);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
+      await storage.deleteEvent(req.params.id);
       res.json({ message: "Event deleted successfully" });
     } catch (error) {
       console.error("Error deleting event:", error);
@@ -208,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user is authenticated (optional for public events)
       let userId = null;
-      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
         userId = req.user.id;
       }
       
@@ -248,10 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: "pending",
       });
       
-      // Update event attendee count
-      await storage.updateEvent(eventId, {
-        currentAttendees: (event.currentAttendees || 0) + 1
-      });
+      // Note: currentAttendees is calculated dynamically
       
       res.status(201).json(registration);
     } catch (error) {
@@ -617,6 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create new user with comprehensive data
       const newUser = await storage.createUser({
         email,
+        password: "temp123", // Temporary password
         firstName,
         lastName,
         membershipType,
@@ -642,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Get all users with detailed info
   app.get('/api/admin/users/detailed', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user?.claims?.sub);
+      const user = await storage.getUser(req.user?.id);
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -658,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Update user admin status
   app.put('/api/admin/users/:userId/admin-status', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user?.claims?.sub);
+      const user = await storage.getUser(req.user?.id);
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -678,10 +672,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/make-me-admin', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const user = await storage.upsertUser({
-        id: userId,
-        isAdmin: true,
-      });
+      // Get existing user and update admin status
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const user = await storage.updateUser(userId, { isAdmin: true });
       res.json({ message: "You are now an admin", user });
     } catch (error) {
       console.error("Error making user admin:", error);
@@ -701,8 +698,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate QR code as data URL
       const qrCodeDataUrl = await QRCode.toDataURL(url, {
         errorCorrectionLevel: 'M',
-        type: 'image/png',
-        quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',
