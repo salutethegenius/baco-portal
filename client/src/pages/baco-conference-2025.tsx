@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Users, Award, Network, Trophy } from "lucide-react";
 import EventRegistrationForm from "@/components/EventRegistrationForm";
+import confetti from 'canvas-confetti';
 
 // Confetti component
 const Confetti = ({ isActive }: { isActive: boolean }) => {
@@ -14,20 +15,20 @@ const Confetti = ({ isActive }: { isActive: boolean }) => {
     const confettiElements: HTMLElement[] = [];
 
     for (let i = 0; i < 50; i++) {
-      const confetti = document.createElement('div');
-      confetti.style.position = 'fixed';
-      confetti.style.left = Math.random() * 100 + 'vw';
-      confetti.style.top = '-10px';
-      confetti.style.width = '10px';
-      confetti.style.height = '10px';
-      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      confetti.style.pointerEvents = 'none';
-      confetti.style.zIndex = '9999';
-      confetti.style.borderRadius = '50%';
-      confetti.style.animation = `confetti-fall ${2 + Math.random() * 3}s linear forwards`;
+      const confettiDiv = document.createElement('div');
+      confettiDiv.style.position = 'fixed';
+      confettiDiv.style.left = Math.random() * 100 + 'vw';
+      confettiDiv.style.top = '-10px';
+      confettiDiv.style.width = '10px';
+      confettiDiv.style.height = '10px';
+      confettiDiv.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confettiDiv.style.pointerEvents = 'none';
+      confettiDiv.style.zIndex = '9999';
+      confettiDiv.style.borderRadius = '50%';
+      confettiDiv.style.animation = `confetti-fall ${2 + Math.random() * 3}s linear forwards`;
 
-      document.body.appendChild(confetti);
-      confettiElements.push(confetti);
+      document.body.appendChild(confettiDiv);
+      confettiElements.push(confettiDiv);
     }
 
     // Add CSS animation
@@ -102,7 +103,7 @@ export default function BacoConference2025() {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-pulse"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url('/Grand-Hyatt-Baha-Mar-P212-Convention-Center-Hotel-Main-Entrance.16x9.webp')`,
             filter: 'brightness(0.5)'
