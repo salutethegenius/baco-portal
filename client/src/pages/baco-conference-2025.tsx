@@ -185,16 +185,6 @@ export default function BacoConference2025() {
                   </div>
                 </div>
               </div>
-
-              <div className="mt-10">
-                <Button
-                  size="lg"
-                  className="bg-baco-primary hover:bg-baco-secondary text-white font-semibold px-8 py-3"
-                  onClick={() => setShowRegistrationForm(true)}
-                >
-                  Register Now
-                </Button>
-              </div>
             </div>
 
             {/* Registration Info Card */}
@@ -238,37 +228,13 @@ export default function BacoConference2025() {
                   </div>
                 </div>
 
-                <Button
-                  className="w-full bg-gold-500 hover:bg-gold-600 text-black font-bold py-3"
-                  onClick={() => setShowRegistrationForm(true)}
-                >
-                  Register Now
-                </Button>
-              </CardContent>
+                </CardContent>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* Call to Action Section */}
-      <section className="py-20 bg-baco-primary text-white">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-4xl font-bold mb-6">
-            Be Part of History
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join us for this landmark celebration of 25 years of compliance excellence. 
-            Network with industry leaders, gain valuable insights, and help shape the future of compliance in the Bahamas.
-          </p>
-          <Button
-            size="lg"
-            className="bg-white text-baco-primary hover:bg-gray-100 font-bold text-xl px-12 py-4 h-auto"
-            onClick={() => setShowRegistrationForm(true)}
-          >
-            Register Now
-          </Button>
-        </div>
-      </section>
+      
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
