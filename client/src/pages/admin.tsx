@@ -248,12 +248,12 @@ export default function Admin() {
     try {
       const response = await apiRequest("GET", "/api/objects/upload");
       const data = await response.json();
-      
+
       // Store the objectPath for later use
       if (data.objectPath) {
         setFlyerObjectPath(data.objectPath);
       }
-      
+
       return {
         method: "PUT" as const,
         url: data.uploadURL,
@@ -268,20 +268,33 @@ export default function Admin() {
     }
   };
 
-  const handleUploadComplete = (result: any) => {
-    console.log("Upload complete result:", result);
-    if (result.successful && result.successful.length > 0) {
-      // The object path was already set in handleGetUploadParameters
-      // Just show success message
+  const handleUploadComplete = async (result: any) => {
+    try {
+      if (result.successful && result.successful.length > 0) {
+        const uploadedFile = result.successful[0];
+        const objectURL = uploadedFile.uploadURL.split('?')[0]; // Remove query parameters
+
+        // Set ACL policy and get normalized path
+        const response = await apiRequest("POST", "/api/objects/set-acl", {
+          objectURL,
+          visibility: "public",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFlyerObjectPath(data.objectPath);
+
+          toast({
+            title: "Upload Successful",
+            description: "Photo uploaded successfully!",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Upload completion error:", error);
       toast({
-        title: "Upload Complete", 
-        description: "Event flyer uploaded successfully",
-      });
-    } else if (result.failed && result.failed.length > 0) {
-      console.error("Upload failed:", result.failed);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload event flyer. Please try again.",
+        title: "Upload Error",
+        description: "Failed to process uploaded file",
         variant: "destructive",
       });
     }

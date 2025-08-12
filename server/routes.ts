@@ -60,12 +60,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const updates = req.body;
-      
+
       const user = await storage.upsertUser({
         id: userId,
         ...updates,
       });
-      
+
       res.json(user);
     } catch (error) {
       console.error("Error updating user profile:", error);
@@ -127,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -138,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: userId,
         slug: eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       });
-      
+
       res.json(event);
     } catch (error) {
       console.error("Error creating event:", error);
@@ -150,18 +150,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const eventData = apiEventSchema.parse(req.body);
       const event = await storage.updateEvent(req.params.id, eventData);
-      
+
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
-      
+
       res.json(event);
     } catch (error) {
       console.error("Error updating event:", error);
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update event with flyer path
       const event = await storage.updateEventFlyer(eventId, objectPath);
-      
+
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -242,28 +242,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/event-registrations', async (req, res) => {
     try {
       const { eventId, fullName, email, position, company, phone, notes } = req.body;
-      
+
       // Check if user is authenticated (optional for public events)
       let userId = null;
       if (req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
         userId = req.user.id;
       }
-      
+
       // Validate event exists and is public
       const event = await storage.getEvent(eventId);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
-      
+
       if (!event.isPublic) {
         return res.status(403).json({ message: "Event is not public" });
       }
-      
+
       // Check if event is full
       if (event.maxAttendees && (event.currentAttendees || 0) >= event.maxAttendees) {
         return res.status(400).json({ message: "Event is full" });
       }
-      
+
       // Check if user is already registered for this event
       if (userId) {
         const existingRegistration = await storage.getUserEventRegistration(userId, eventId);
@@ -271,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "You are already registered for this event" });
         }
       }
-      
+
       const registration = await storage.createEventRegistration({
         eventId,
         userId, // Will be null for non-authenticated users, or user ID for authenticated users
@@ -284,9 +284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentAmount: event.price?.toString() || "0.00",
         paymentStatus: "pending",
       });
-      
+
       // Note: currentAttendees is calculated dynamically
-      
+
       res.status(201).json(registration);
     } catch (error) {
       console.error("Error creating event registration:", error);
@@ -313,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId,
       });
-      
+
       const document = await storage.createDocument(documentData);
       res.json(document);
     } catch (error) {
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         fromUserId: userId,
       });
-      
+
       const message = await storage.createMessage(messageData);
       res.json(message);
     } catch (error) {
@@ -389,7 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount, type, eventId, description } = req.body;
       const userId = req.user.id;
-      
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: "usd",
@@ -431,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (user.stripeSubscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        
+
         res.json({
           subscriptionId: subscription.id,
           clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
@@ -496,18 +496,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const objectStorageService = new ObjectStorageService();
-      
+
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       const canAccess = await objectStorageService.canAccessObjectEntity({
         objectFile,
         userId: userId,
         requestedPermission: ObjectPermission.READ,
       });
-      
+
       if (!canAccess) {
         return res.sendStatus(403);
       }
-      
+
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error accessing object:", error);
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!existingUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       const user = await storage.updateUser(userId, { isAdmin: true });
       res.json({ message: "You are now an admin", user });
     } catch (error) {
