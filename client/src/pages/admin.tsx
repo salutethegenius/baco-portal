@@ -415,6 +415,7 @@ export default function Admin() {
           <TabsList>
             <TabsTrigger value="users" data-testid="tab-users">Members</TabsTrigger>
             <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
+            <TabsTrigger value="landing-pages" data-testid="tab-landing-pages">Event Landing Pages</TabsTrigger>
             <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
           </TabsList>
 
@@ -1070,6 +1071,103 @@ export default function Admin() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="landing-pages">
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Landing Pages</CardTitle>
+                <p className="text-sm text-gray-600">Manage dedicated landing pages for special events with QR code generation</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* BACO Conference 2025 */}
+                  <div className="border rounded-lg p-6 bg-gradient-to-r from-gold-50 to-yellow-50 border-gold-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gold-500 rounded-full flex items-center justify-center">
+                          <Award className="w-6 h-6 text-black" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">BACO Conference 2025</h3>
+                          <p className="text-sm text-gray-600">25th Anniversary Celebration</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>URL:</strong> <code className="bg-gray-100 px-2 py-1 rounded text-xs">/baco-conference-2025</code>
+                      </p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>Event Dates:</strong> November 13-14, 2025
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Venue:</strong> Grand Hyatt Baha Mar, Nassau
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('/baco-conference-2025', '_blank')}
+                        className="bg-white hover:bg-gray-50"
+                      >
+                        <i className="fas fa-external-link-alt mr-2 text-xs"></i>
+                        View Landing Page
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Generate QR code for the landing page
+                          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin + '/baco-conference-2025')}`;
+                          window.open(qrCodeUrl, '_blank');
+                        }}
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                      >
+                        <i className="fas fa-qrcode mr-2 text-xs"></i>
+                        Generate QR Code
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.origin + '/baco-conference-2025');
+                          toast({
+                            title: "Copied!",
+                            description: "Landing page URL copied to clipboard",
+                          });
+                        }}
+                        className="bg-gray-50 hover:bg-gray-100"
+                      >
+                        <i className="fas fa-copy mr-2 text-xs"></i>
+                        Copy URL
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Placeholder for future landing pages */}
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-plus text-gray-400 text-xl"></i>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Create New Landing Page</h3>
+                    <p className="text-gray-500 mb-4">
+                      Design custom landing pages for special events and conferences
+                    </p>
+                    <Button variant="outline" disabled>
+                      <i className="fas fa-plus mr-2"></i>
+                      Coming Soon
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

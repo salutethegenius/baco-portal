@@ -213,6 +213,26 @@
   background-repeat: no-repeat;
 }
 
+/* Animations */
+@keyframes bounce-gentle {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0,-8px,0);
+  }
+  70% {
+    transform: translate3d(0,-4px,0);
+  }
+  90% {
+    transform: translate3d(0,-2px,0);
+  }
+}
+
+.animate-bounce {
+  animation: bounce-gentle 2s infinite;
+}
+
 .section {
   @apply py-12 px-4 md:px-8 lg:px-16;
 }
