@@ -44,7 +44,7 @@ export default function Admin() {
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [editEventDialogOpen, setEditEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
-  const [flyerObjectPath, setFlyerObjectPath] = useState<string>("");
+  
 
   // Redirect if not admin
   useEffect(() => {
@@ -100,16 +100,12 @@ export default function Admin() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      console.log("🚀 Starting event creation with data:", {
-        ...data,
-        flyerObjectPath
-      });
+      console.log("🚀 Starting event creation with data:", data);
 
       const eventData = {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
-        flyerObjectPath: flyerObjectPath || null,
       };
 
       console.log("📝 Event data being sent to server:", eventData);
@@ -129,41 +125,6 @@ export default function Admin() {
 
         const event = await response.json();
         console.log("✅ Event created successfully:", event);
-
-        // If we have a flyer, update the event with the flyer
-        if (flyerObjectPath && flyerObjectPath !== 'local') {
-          console.log("🖼️ Updating event with flyer:", flyerObjectPath);
-          try {
-            const flyerResponse = await apiRequest("PUT", `/api/events/${event.id}/flyer`, {
-              objectURL: flyerObjectPath,
-            });
-            
-            if (!flyerResponse.ok) {
-              const flyerErrorText = await flyerResponse.text();
-              console.error("⚠️ Flyer upload failed but event created:", {
-                status: flyerResponse.status,
-                error: flyerErrorText
-              });
-              // Don't throw here, event is already created
-              toast({
-                title: "Event Created",
-                description: "Event created successfully, but flyer upload failed. You can edit the event to add the flyer later.",
-                variant: "default",
-              });
-            } else {
-              console.log("✅ Flyer attached to event successfully");
-            }
-          } catch (flyerError: any) {
-            console.error("⚠️ Error attaching flyer to event:", flyerError);
-            // Don't fail the whole creation, just warn
-            toast({
-              title: "Event Created",
-              description: "Event created successfully, but flyer attachment failed. You can edit the event to add the flyer later.",
-              variant: "default",
-            });
-          }
-        }
-
         return event;
       } catch (error: any) {
         console.error("❌ Event creation failed:", {
@@ -181,7 +142,6 @@ export default function Admin() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setCreateEventDialogOpen(false);
-      setFlyerObjectPath("");
       form.reset();
     },
     onError: (error: Error) => {
@@ -252,11 +212,7 @@ export default function Admin() {
   });
 
   const handleSubmit = (data: EventFormData) => {
-    const eventData = {
-      ...data,
-      flyerObjectPath: flyerObjectPath || null,
-    };
-    createEventMutation.mutate(eventData);
+    createEventMutation.mutate(data);
   };
 
   const updateEventMutation = useMutation({
@@ -265,7 +221,6 @@ export default function Admin() {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
-        flyerObjectPath: flyerObjectPath || null,
       };
 
       const response = await apiRequest("PUT", `/api/events/${id}`, eventData);
@@ -311,7 +266,6 @@ export default function Admin() {
       price: parseFloat(event.price) || 0,
       maxAttendees: event.maxAttendees || 50,
     });
-    setFlyerObjectPath(event.flyerObjectPath || "");
     setEditEventDialogOpen(true);
   };
 
@@ -321,124 +275,7 @@ export default function Admin() {
     }
   };
 
-  // File upload handlers for event flyers
-  const handleGetUploadParameters = async (file: any) => {
-    console.log("🔄 Getting upload parameters for file:", {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
-    
-    try {
-      const response = await apiRequest("GET", "/api/objects/upload");
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Upload parameter request failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        throw new Error(`Failed to get upload parameters: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("✅ Upload parameters received:", {
-        method: data.method,
-        uploadURL: data.uploadURL,
-        objectPath: data.objectPath
-      });
-
-      // Store the object path when we get the upload URL
-      if (data.objectPath) {
-        console.log("📁 Setting flyer object path:", data.objectPath);
-        setFlyerObjectPath(data.objectPath);
-      } else {
-        console.warn("⚠️ No object path returned from upload parameters");
-      }
-
-      if (data.method === 'POST') {
-        // For local storage, we need to use form data
-        console.log("📤 Using POST method for local storage");
-        return {
-          method: "POST" as const,
-          url: data.uploadURL,
-          fields: {
-            file: file
-          },
-        };
-      }
-
-      console.log("📤 Using PUT method for cloud storage");
-      return {
-        method: data.method || "PUT" as const,
-        url: data.uploadURL,
-      };
-    } catch (error: any) {
-      console.error("❌ Error getting upload parameters:", {
-        error: error.message,
-        stack: error.stack
-      });
-      toast({
-        title: "Upload Error",
-        description: `Failed to get upload parameters: ${error.message}`,
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const handleUploadComplete = async (result: any) => {
-    console.log("🎯 Upload complete - full result:", JSON.stringify(result, null, 2));
-    
-    if (result.successful && result.successful.length > 0) {
-      console.log("✅ Upload successful:", result.successful);
-      const successfulUpload = result.successful[0];
-      
-      // For local uploads, we might need to extract the object path differently
-      if (successfulUpload.uploadURL && successfulUpload.uploadURL.includes('/api/files/')) {
-        const objectPath = successfulUpload.uploadURL;
-        console.log("📁 Local upload detected, setting object path:", objectPath);
-        setFlyerObjectPath(objectPath);
-      }
-      
-      toast({
-        title: "Upload Complete",
-        description: "Event flyer uploaded successfully!",
-      });
-    } else if (result.failed && result.failed.length > 0) {
-      console.error("❌ Upload failed:", result.failed);
-      const failedUpload = result.failed[0];
-      console.error("❌ Failed upload details:", {
-        error: failedUpload.error,
-        response: failedUpload.response,
-        status: failedUpload.status
-      });
-      
-      setFlyerObjectPath(""); // Clear on failure
-      
-      // Get more specific error message
-      let errorMessage = "Failed to upload event flyer. Please try again.";
-      if (failedUpload.error) {
-        errorMessage = `Upload failed: ${failedUpload.error}`;
-      } else if (failedUpload.response) {
-        errorMessage = `Upload failed: ${failedUpload.response}`;
-      }
-      
-      toast({
-        title: "Upload Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } else {
-      console.warn("⚠️ Unexpected upload result:", result);
-      toast({
-        title: "Upload Status Unknown",
-        description: "Upload completed but status is unclear. Please check if the file was uploaded.",
-        variant: "destructive",
-      });
-    }
-  };
+  
 
   const updateAdminStatusMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
@@ -869,30 +706,7 @@ export default function Admin() {
                               )}
                             />
 
-                            <div className="space-y-2">
-                              <FormLabel>Event Flyer (Optional)</FormLabel>
-                              <ObjectUploader
-                                maxNumberOfFiles={1}
-                                maxFileSize={5242880} // 5MB
-                                onGetUploadParameters={handleGetUploadParameters}
-                                onComplete={handleUploadComplete}
-                                buttonClassName="w-full border-2 border-dashed border-gray-300 hover:border-baco-primary transition-colors"
-                              >
-                                <div className="flex flex-col items-center py-6">
-                                  <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                  </svg>
-                                  <span className="text-sm text-gray-600 font-medium">Click to upload flyer</span>
-                                  <span className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</span>
-                                  {flyerObjectPath && (
-                                    <span className="text-xs text-green-600 mt-2">✓ Flyer uploaded</span>
-                                  )}
-                                </div>
-                              </ObjectUploader>
-                              <p className="text-sm text-gray-500">
-                                Upload a promotional flyer image for the event
-                              </p>
-                            </div>
+                            
                           </div>
 
                           <div className="flex space-x-4">
@@ -1046,31 +860,7 @@ export default function Admin() {
                             />
                           </div>
 
-                          {/* Image Upload for Edit Form */}
-                          <div className="space-y-2">
-                            <FormLabel>Event Flyer (Optional)</FormLabel>
-                            <ObjectUploader
-                              maxNumberOfFiles={1}
-                              maxFileSize={5242880} // 5MB
-                              onGetUploadParameters={handleGetUploadParameters}
-                              onComplete={handleUploadComplete}
-                              buttonClassName="w-full border-2 border-dashed border-gray-300 hover:border-baco-primary transition-colors"
-                            >
-                              <div className="flex flex-col items-center py-6">
-                                <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                                <span className="text-sm text-gray-600 font-medium">Click to upload flyer</span>
-                                <span className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</span>
-                                {flyerObjectPath && (
-                                  <span className="text-xs text-green-600 mt-2">✓ Flyer uploaded</span>
-                                )}
-                              </div>
-                            </ObjectUploader>
-                            <p className="text-sm text-gray-500">
-                              Upload a promotional flyer image for the event
-                            </p>
-                          </div>
+                          
 
                           <div className="flex space-x-4">
                             <Button

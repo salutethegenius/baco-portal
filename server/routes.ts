@@ -33,7 +33,7 @@ const apiEventSchema = z.object({
     typeof val === 'string' ? parseInt(val) : val
   ),
   status: z.string().optional().default("upcoming"),
-  flyerObjectPath: z.string().optional().nullable(),
+  
 });
 
 // Temporarily comment out Stripe initialization
@@ -153,34 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eventData = apiEventSchema.parse(req.body);
       console.log("✅ Event data parsed successfully:", eventData);
       
-      // Generate flyer image URL if flyerObjectPath is provided
-      let flyerImageUrl = null;
-      if (eventData.flyerObjectPath && eventData.flyerObjectPath !== 'local') {
-        console.log("🖼️ Processing flyer object path:", eventData.flyerObjectPath);
-        try {
-          if (eventData.flyerObjectPath.startsWith('/api/files/')) {
-            // Local file
-            flyerImageUrl = eventData.flyerObjectPath;
-            console.log("✅ Local flyer URL:", flyerImageUrl);
-          } else {
-            // AWS or other cloud storage
-            flyerImageUrl = new AWSStorageService().getPublicURL(eventData.flyerObjectPath);
-            console.log("✅ AWS flyer URL generated:", flyerImageUrl);
-          }
-        } catch (flyerError: any) {
-          console.error("⚠️ Error processing flyer URL:", flyerError);
-          // Continue without flyer
-        }
-      } else {
-        console.log("ℹ️ No flyer object path provided");
-      }
-
       const slug = eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       console.log("🔗 Generated slug:", slug);
 
       const eventToCreate = {
         ...eventData,
-        flyerImageUrl,
         createdBy: userId,
         slug,
       };
@@ -225,16 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const eventData = apiEventSchema.parse(req.body);
-      
-      // Generate flyer image URL if flyerObjectPath is provided
-      const updateData = {
-        ...eventData,
-        flyerImageUrl: eventData.flyerObjectPath 
-          ? new AWSStorageService().getPublicURL(eventData.flyerObjectPath)
-          : null,
-      };
-      
-      const event = await storage.updateEvent(req.params.id, updateData);
+      const event = await storage.updateEvent(req.params.id, eventData);
 
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
@@ -834,45 +802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload flyer for event - Use PUT to match client expectation
-  app.put('/api/events/:id/flyer', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-
-      if (!user?.isAdmin) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { objectURL } = req.body;
-      const eventId = req.params.id;
-
-      if (!objectURL) {
-        return res.status(400).json({ error: "objectURL is required" });
-      }
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        objectURL,
-        {
-          owner: userId,
-          visibility: "public",
-        },
-      );
-
-      // Update event with flyer path
-      const event = await storage.updateEventFlyer(eventId, objectPath);
-
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-
-      res.json({ event, objectPath });
-    } catch (error) {
-      console.error("Error uploading event flyer:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  
 
   // Set object ACL policy endpoint
   app.post('/api/objects/set-acl', isAuthenticated, async (req: any, res) => {

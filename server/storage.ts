@@ -40,7 +40,7 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
-  updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event>;
+  
 
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
@@ -194,18 +194,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(events).where(eq(events.id, id));
   }
 
-  async updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event> {
-    const [event] = await db
-      .update(events)
-      .set({ 
-        flyerObjectPath,
-        flyerImageUrl: `/objects${flyerObjectPath}`,
-        updatedAt: new Date() 
-      })
-      .where(eq(events.id, id))
-      .returning();
-    return event;
-  }
+  
 
   // Event registration operations
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {

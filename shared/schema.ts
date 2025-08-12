@@ -85,8 +85,7 @@ export const events = pgTable("events", {
   currentAttendees: integer("current_attendees").default(0),
   status: varchar("status").default("upcoming"), // upcoming, ongoing, completed, cancelled
   isPublic: boolean("is_public").default(true),
-  flyerImageUrl: varchar("flyer_image_url"),
-  flyerObjectPath: varchar("flyer_object_path"),
+  
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
