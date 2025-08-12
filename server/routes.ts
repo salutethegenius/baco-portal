@@ -1,17 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-// import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { ObjectPermission } from "./objectAcl";
-import { AWSStorageService } from "./awsStorage";
-import { LocalStorageService } from "./localStorage";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import QRCode from "qrcode";
-import multer from 'multer';
-import { readFile } from 'fs/promises';
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -36,14 +29,7 @@ const apiEventSchema = z.object({
 
 });
 
-// Temporarily comment out Stripe initialization
-// if (!process.env.STRIPE_SECRET_KEY) {
-//   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-// }
 
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-//   apiVersion: "2023-10-16",
-// });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -352,12 +338,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/documents', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const documentData = insertDocumentSchema.parse({
-        ...req.body,
+      const { fileName, category, description } = req.body;
+
+      // Create document record without file upload
+      const document = await storage.createDocument({
         userId,
+        fileName: fileName || 'Document',
+        fileType: 'text/plain',
+        fileSize: 0,
+        objectPath: '', // No file path needed
+        category: category || 'general',
+        description,
       });
 
-      const document = await storage.createDocument(documentData);
       res.json(document);
     } catch (error) {
       console.error("Error creating document:", error);
@@ -534,112 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(503).json({ message: "Subscription processing temporarily unavailable - Stripe keys needed" });
   });
 
-  // Object storage routes for documents
-  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const objectStorageService = new ObjectStorageService();
-
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        objectFile,
-        userId: userId,
-        requestedPermission: ObjectPermission.READ,
-      });
-
-      if (!canAccess) {
-        return res.sendStatus(403);
-      }
-
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error accessing object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
-    }
-  });
-
-  app.get("/api/objects/upload", isAuthenticated, async (req, res) => {
-    try {
-      console.log("🔄 Upload URL request from user:", (req as any).user?.email);
-
-      // Try AWS first, then object storage, finally local storage
-      try {
-        console.log("🔄 Trying AWS storage...");
-        const awsStorageService = new AWSStorageService();
-        const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
-        console.log("✅ AWS upload URL generated:", { uploadURL, objectPath });
-        res.json({ uploadURL, objectPath, method: 'PUT' });
-      } catch (awsError) {
-        console.log("⚠️ AWS unavailable, trying object storage:", (awsError as Error).message);
-        try {
-          console.log("🔄 Trying object storage...");
-          const objectStorageService = new ObjectStorageService();
-          const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-          console.log("✅ Object storage upload URL generated:", uploadURL);
-          res.json({ uploadURL, objectPath: uploadURL, method: 'PUT' });
-        } catch (objError) {
-          console.log("⚠️ Object storage unavailable, using local storage:", (objError as Error).message);
-          console.log("🔄 Using local storage...");
-          // For local storage, we'll use a POST endpoint instead
-          const localResponse = { 
-            uploadURL: '/api/objects/upload-local',
-            objectPath: `local-${Date.now()}`,
-            method: 'POST'
-          };
-          console.log("✅ Local storage configuration:", localResponse);
-          res.json(localResponse);
-        }
-      }
-    } catch (error: any) {
-      console.error("❌ Error getting upload URL:", {
-        error: error.message,
-        stack: error.stack
-      });
-      res.status(500).json({ 
-        message: "Failed to get upload URL", 
-        error: error?.message || 'Unknown error',
-        details: error?.stack 
-      });
-    }
-  });
-
-  app.put("/api/documents/upload", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { fileName, fileType, fileSize, objectURL, category } = req.body;
-
-      if (!objectURL) {
-        return res.status(400).json({ error: "objectURL is required" });
-      }
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        objectURL,
-        {
-          owner: userId,
-          visibility: "private",
-        },
-      );
-
-      // Create document record
-      const document = await storage.createDocument({
-        userId,
-        fileName,
-        fileType,
-        fileSize,
-        objectPath,
-        category,
-      });
-
-      res.json({ document, objectPath });
-    } catch (error) {
-      console.error("Error uploading document:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  
 
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
@@ -837,104 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Set object ACL policy endpoint
-  app.post('/api/objects/set-acl', isAuthenticated, async (req: any, res) => {
-    try {
-      const { objectURL, visibility } = req.body;
-      const userId = req.user.id;
-
-      // If it's a local file, just return the path as-is
-      if (objectURL === 'local' || objectURL.startsWith('/api/files/')) {
-        return res.json({ objectPath: objectURL });
-      }
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        objectURL,
-        {
-          owner: userId,
-          visibility: visibility || "public",
-        }
-      );
-
-      res.json({ objectPath });
-    } catch (error) {
-      console.error("Error setting ACL policy:", error);
-      res.status(500).json({ error: "Failed to set ACL policy" });
-    }
-  });
-
-  // Local file upload endpoint
-  const upload = multer({ dest: 'temp/' });
-  app.post('/api/objects/upload-local', isAuthenticated, upload.single('file'), async (req: any, res) => {
-    try {
-      console.log("🔄 Local file upload request received");
-      console.log("📁 Request file info:", {
-        hasFile: !!req.file,
-        filename: req.file?.filename,
-        originalname: req.file?.originalname,
-        mimetype: req.file?.mimetype,
-        size: req.file?.size,
-        path: req.file?.path
-      });
-
-      if (!req.file) {
-        console.error("❌ No file in upload request");
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
-
-      console.log("🔄 Reading uploaded file...");
-      const localStorageService = new LocalStorageService();
-      const fileBuffer = await readFile(req.file.path);
-      console.log("✅ File read successfully, size:", fileBuffer.length, "bytes");
-
-      console.log("🔄 Saving file to local storage...");
-      const { objectPath, publicURL } = await localStorageService.saveFile(fileBuffer, req.file.mimetype);
-      console.log("✅ File saved to local storage:", { objectPath, publicURL });
-
-      // Clean up temp file
-      try {
-        await require('fs/promises').unlink(req.file.path);
-        console.log("✅ Temp file cleaned up:", req.file.path);
-      } catch (unlinkError) {
-        console.warn('⚠️ Failed to cleanup temp file:', unlinkError);
-      }
-
-      const response = {
-        uploadURL: publicURL,
-        objectPath: publicURL, // Use publicURL as objectPath for consistency
-        successful: [{ uploadURL: publicURL }]
-      };
-
-      console.log("✅ Local upload response:", response);
-      res.json(response);
-    } catch (error: any) {
-      console.error("❌ Error uploading file locally:", {
-        error: error.message,
-        stack: error.stack
-      });
-      res.status(500).json({ 
-        error: "Failed to upload file", 
-        details: error.message 
-      });
-    }
-  });
-
-  // Serve local files
-  app.get('/api/files/:fileName', async (req, res) => {
-    try {
-      const { fileName } = req.params;
-      const localStorageService = new LocalStorageService();
-      const filePath = localStorageService.getLocalPath(fileName);
-
-      const fileBuffer = await readFile(filePath);
-      res.setHeader('Content-Type', 'image/jpeg'); // Default to image
-      res.send(fileBuffer);
-    } catch (error) {
-      console.error("Error serving file:", error);
-      res.status(404).json({ error: "File not found" });
-    }
-  });
+  
 
 
   const httpServer = createServer(app);

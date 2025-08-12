@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-// import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-// import { loadStripe } from '@stripe/stripe-js';
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,13 +10,7 @@ import { useParams } from "wouter";
 import { format } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 
-// Temporarily comment out Stripe initialization
-// if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-//   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-// }
-// const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
-// Temporary payment forms while Stripe is unavailable
+// Payment forms for external payment processing
 const PaymentUnavailableForm = ({ type, amount, description }: any) => {
   return (
     <div className="space-y-6">
