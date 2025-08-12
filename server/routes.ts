@@ -20,6 +20,12 @@ const apiEventSchema = z.object({
   price: z.union([z.string(), z.number()]).transform(val => 
     typeof val === 'string' ? val : val.toString()
   ),
+  memberPrice: z.union([z.string(), z.number()]).optional().transform(val => 
+    val ? (typeof val === 'string' ? val : val.toString()) : undefined
+  ),
+  nonMemberPrice: z.union([z.string(), z.number()]).optional().transform(val => 
+    val ? (typeof val === 'string' ? val : val.toString()) : undefined
+  ),
   maxAttendees: z.union([z.string(), z.number()]).transform(val => 
     typeof val === 'string' ? parseInt(val) : val
   ),
@@ -203,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public event registration endpoint (works for both authenticated and non-authenticated users)
   app.post('/api/event-registrations', async (req, res) => {
     try {
-      const { eventId, fullName, email, position, company, notes, phone } = req.body;
+      const { eventId, fullName, email, position, company, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
 
       // Check if user is authenticated (optional for public events)
       let userId = null;
@@ -243,7 +249,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         position,
         phoneNumber: phone,
         notes,
-        paymentAmount: event.price?.toString() || "0.00",
+        registrationType: registrationType || null,
+        paymentMethod: paymentMethod || "paylanes",
+        paymentAmount: paymentAmount || event.price?.toString() || "0.00",
         paymentStatus: "pending",
       });
 

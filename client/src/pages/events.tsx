@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import EventCard from "@/components/EventCard";
+import EventRegistrationForm from "@/components/EventRegistrationForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +37,7 @@ export default function Events() {
         window.location.href = paymentUrl;
         return;
       }
-      
+
       // Register for free events directly
       await apiRequest("POST", "/api/event-registrations", {
         eventId: eventData.id,
@@ -70,7 +71,7 @@ export default function Events() {
     const eventDate = new Date(event.startDate);
     return eventDate <= now;
   });
-  
+
   const registeredEventIds = new Set((myRegistrations || []).map((reg: any) => reg.eventId || reg.event?.id));
 
   const isRegistered = (eventId: string) => registeredEventIds.has(eventId);
@@ -87,6 +88,10 @@ export default function Events() {
       return { text: "Full", variant: "destructive" };
     }
     return { text: "Registration Open", variant: "default" };
+  };
+
+  const setSelectedEventForRegistration = (event: any) => {
+    setSelectedEvent(event);
   };
 
   return (
@@ -161,7 +166,7 @@ export default function Events() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <Badge 
@@ -176,7 +181,7 @@ export default function Events() {
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="flex space-x-2">
                             <Button 
                               variant="outline"
@@ -185,15 +190,25 @@ export default function Events() {
                             >
                               View Event Page
                             </Button>
-                            
+
                             {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (event.maxAttendees === null || event.maxAttendees === undefined || (event.currentAttendees || 0) < event.maxAttendees) && (
-                              <Button
-                                onClick={() => navigate(`/events/${event.id}/register`)}
-                                className="bg-baco-primary hover:bg-baco-secondary"
-                                data-testid={`button-register-${event.id}`}
-                              >
-                                {event.price > 0 ? `Register - $${event.price}` : 'Register (Free)'}
-                              </Button>
+                              <Dialog open={selectedEvent?.id === event.id} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    onClick={() => setSelectedEventForRegistration(event)}
+                                    className="bg-baco-primary hover:bg-baco-secondary"
+                                    data-testid={`button-register-${event.id}`}
+                                  >
+                                    {event.price > 0 ? `Register - $${event.price}` : 'Register (Free)'}
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                  <DialogHeader>
+                                    <DialogTitle>Register for {event.title}</DialogTitle>
+                                  </DialogHeader>
+                                  <EventRegistrationForm event={event} onClose={() => setSelectedEvent(null)} />
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </div>
                         </div>

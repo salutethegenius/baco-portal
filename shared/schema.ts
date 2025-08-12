@@ -79,6 +79,8 @@ export const events = pgTable("events", {
   endDate: timestamp("end_date").notNull(),
   location: varchar("location"),
   price: decimal("price", { precision: 10, scale: 2 }).default("0.00"),
+  memberPrice: decimal("member_price", { precision: 10, scale: 2 }),
+  nonMemberPrice: decimal("non_member_price", { precision: 10, scale: 2 }),
   maxAttendees: integer("max_attendees"),
   currentAttendees: integer("current_attendees").default(0),
   status: varchar("status").default("upcoming"), // upcoming, ongoing, completed, cancelled
@@ -101,6 +103,8 @@ export const eventRegistrations = pgTable("event_registrations", {
   position: varchar("position"),
   phoneNumber: varchar("phone_number"),
   notes: text("notes"),
+  registrationType: varchar("registration_type"), // "member_two_day", "non_member_one_day", "non_member_two_day"
+  paymentMethod: varchar("payment_method"), // "paylanes", "bank_transfer"
   registrationDate: timestamp("registration_date").defaultNow(),
   paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
   paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }),
