@@ -44,6 +44,8 @@ export default function Admin() {
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [editEventDialogOpen, setEditEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [viewRegistrationsDialogOpen, setViewRegistrationsDialogOpen] = useState(false);
+  const [selectedEventForRegistrations, setSelectedEventForRegistrations] = useState<any>(null);
   
 
   // Redirect if not admin
@@ -83,6 +85,11 @@ export default function Admin() {
   const { data: events = [] } = useQuery<any[]>({
     queryKey: ["/api/events"],
     enabled: !!(user as any)?.isAdmin,
+  });
+
+  const { data: eventRegistrations = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/events", selectedEventForRegistrations?.id, "registrations"],
+    enabled: !!(user as any)?.isAdmin && !!selectedEventForRegistrations?.id,
   });
 
   const form = useForm<EventFormData>({
@@ -273,6 +280,11 @@ export default function Admin() {
     if (editingEvent) {
       updateEventMutation.mutate({ id: editingEvent.id, data });
     }
+  };
+
+  const handleViewRegistrations = (event: any) => {
+    setSelectedEventForRegistrations(event);
+    setViewRegistrationsDialogOpen(true);
   };
 
   
@@ -888,6 +900,85 @@ export default function Admin() {
                       </Form>
                     </DialogContent>
                   </Dialog>
+
+                  {/* View Registrations Dialog */}
+                  <Dialog open={viewRegistrationsDialogOpen} onOpenChange={setViewRegistrationsDialogOpen}>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>
+                          Event Registrations - {selectedEventForRegistrations?.title}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="text-sm text-gray-600">
+                          Total Registrations: {eventRegistrations.length}
+                        </div>
+                        {eventRegistrations.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Email</TableHead>
+                                  <TableHead>Position</TableHead>
+                                  <TableHead>Phone</TableHead>
+                                  <TableHead>Registration Type</TableHead>
+                                  <TableHead>Payment Status</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead>Registration Date</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {eventRegistrations.map((registration: any) => (
+                                  <TableRow key={registration.id}>
+                                    <TableCell className="font-medium">
+                                      {registration.firstName} {registration.lastName}
+                                    </TableCell>
+                                    <TableCell>{registration.email}</TableCell>
+                                    <TableCell>{registration.position || 'N/A'}</TableCell>
+                                    <TableCell>{registration.phoneNumber || 'N/A'}</TableCell>
+                                    <TableCell className="capitalize">
+                                      {registration.registrationType?.replace(/_/g, ' ') || 'N/A'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge 
+                                        className={getStatusColor(registration.paymentStatus)}
+                                      >
+                                        {registration.paymentStatus?.charAt(0).toUpperCase() + registration.paymentStatus?.slice(1)}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {registration.paymentAmount ? `$${registration.paymentAmount}` : 'Free'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {format(new Date(registration.registrationDate), 'MMM d, yyyy h:mm a')}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <i className="fas fa-users text-gray-400 text-4xl mb-4"></i>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Registrations Yet</h3>
+                            <p className="text-gray-500">This event doesn't have any registrations.</p>
+                          </div>
+                        )}
+                        <div className="flex justify-end pt-4 border-t">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setViewRegistrationsDialogOpen(false);
+                              setSelectedEventForRegistrations(null);
+                            }}
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
@@ -947,6 +1038,15 @@ export default function Admin() {
                                   eventSlug={event.slug}
                                 />
                               )}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleViewRegistrations(event)}
+                                data-testid={`button-view-registrations-${event.id}`}
+                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                              >
+                                View Registrations
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm" 

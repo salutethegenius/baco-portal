@@ -127,15 +127,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User> {
-    const [user] = await db
+    const [updatedUser] = await db
       .update(users)
-      .set({
-        isAdmin,
-        updatedAt: new Date()
-      })
+      .set({ isAdmin, updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
-    return user;
+
+    return updatedUser;
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {

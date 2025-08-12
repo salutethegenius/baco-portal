@@ -529,6 +529,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   
 
+  // Admin: Get event registrations
+  app.get('/api/admin/events/:eventId/registrations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const registrations = await storage.getEventRegistrations(req.params.eventId);
+      res.json(registrations);
+    } catch (error) {
+      console.error("Error fetching event registrations:", error);
+      res.status(500).json({ message: "Failed to fetch event registrations" });
+    }
+  });
+
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
