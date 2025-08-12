@@ -49,7 +49,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
           <Route path="/event/:eventId" component={EventDetail} />
-          <Route path="/event-registration/event/:eventId" component={EventRegistration} />
+          <Route path="/events/:slug/register" component={EventRegistration} />
           <Route path="/messages" component={Messages} />
           <Route path="/documents" component={Documents} />
           <Route path="/profile" component={Profile} />

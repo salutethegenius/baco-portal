@@ -114,6 +114,18 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).orderBy(desc(users.createdAt));
   }
 
+  async updateUser(userId: string, userData: Partial<UpsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
   async updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User> {
     const [user] = await db
       .update(users)
@@ -193,7 +205,7 @@ export class DatabaseStorage implements IStorage {
   async deleteEvent(eventId: string): Promise<void> {
     try {
       // First check if event has registrations
-      const registrations = await this.db
+      const registrations = await db
         .select()
         .from(eventRegistrations)
         .where(eq(eventRegistrations.eventId, eventId));
@@ -202,7 +214,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Cannot delete event with ${registrations.length} existing registrations. Please contact registrants first.`);
       }
 
-      await this.db.delete(events).where(eq(events.id, eventId));
+      await db.delete(events).where(eq(events.id, eventId));
     } catch (error) {
       console.error('Error deleting event:', error);
       throw error;
@@ -217,7 +229,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async findEventRegistrationByEmail(eventId: string, email: string): Promise<any> {
-    const results = await this.db
+    const results = await db
       .select()
       .from(eventRegistrations)
       .where(
@@ -256,18 +268,18 @@ export class DatabaseStorage implements IStorage {
 
   async createEventRegistration(data: InsertEventRegistration): Promise<EventRegistration> {
     // Create the registration
-    const [registration] = await this.db
+    const [registration] = await db
       .insert(eventRegistrations)
       .values(data)
       .returning();
 
     // Update event's current attendee count
-    const currentCount = await this.db
+    const currentCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(eventRegistrations)
       .where(eq(eventRegistrations.eventId, data.eventId));
 
-    await this.db
+    await db
       .update(events)
       .set({ currentAttendees: currentCount[0].count })
       .where(eq(events.id, data.eventId));

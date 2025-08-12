@@ -251,10 +251,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { eventId, fullName, email, position, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
 
       // Validate required fields
-      if (!eventId || !firstName || !lastName || !email) {
-        console.log('Missing required fields:', { eventId, firstName, lastName, email });
-        return res.status(400).json({ message: "Missing required fields: eventId, firstName, lastName, email" });
+      if (!eventId || !fullName || !email) {
+        console.log('Missing required fields:', { eventId, fullName, email });
+        return res.status(400).json({ message: "Missing required fields: eventId, fullName, email" });
       }
+
+      // Split fullName into firstName and lastName
+      const nameParts = fullName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
