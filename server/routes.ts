@@ -6,9 +6,12 @@ import { setupAuth, isAuthenticated } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { AWSStorageService } from "./awsStorage";
+import { LocalStorageService } from "./localStorage";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import QRCode from "qrcode";
+import multer from 'multer';
+import { readFile } from 'fs/promises';
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -492,17 +495,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Upload URL request from user:", (req as any).user?.email);
       
-      // Try AWS first, fallback to object storage
+      // Try AWS first, then object storage, finally local storage
       try {
         const awsStorageService = new AWSStorageService();
         const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
         console.log("Generated AWS upload URL for object:", objectPath);
-        res.json({ uploadURL, objectPath });
+        res.json({ uploadURL, objectPath, method: 'PUT' });
       } catch (awsError) {
-        console.log("AWS unavailable, using object storage:", awsError.message);
-        const objectStorageService = new ObjectStorageService();
-        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-        res.json({ uploadURL, objectPath: uploadURL });
+        console.log("AWS unavailable, trying object storage:", awsError.message);
+        try {
+          const objectStorageService = new ObjectStorageService();
+          const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+          res.json({ uploadURL, objectPath: uploadURL, method: 'PUT' });
+        } catch (objError) {
+          console.log("Object storage unavailable, using local storage:", objError.message);
+          // For local storage, we'll use a POST endpoint instead
+          res.json({ 
+            uploadURL: '/api/objects/upload-local',
+            objectPath: 'local',
+            method: 'POST'
+          });
+        }
       }
     } catch (error) {
       console.error("Error getting upload URL:", error);
@@ -785,7 +798,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { objectURL, visibility } = req.body;
       const userId = req.user.id;
 
-      const objectStorageService = new ObjectStorageService(); // Instantiating here to ensure it's available
+      // If it's a local file, just return the path as-is
+      if (objectURL === 'local' || objectURL.startsWith('/api/files/')) {
+        return res.json({ objectPath: objectURL });
+      }
+
+      const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
         objectURL,
         {
@@ -798,6 +816,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting ACL policy:", error);
       res.status(500).json({ error: "Failed to set ACL policy" });
+    }
+  });
+
+  // Local file upload endpoint
+  const upload = multer({ dest: 'temp/' });
+  app.post('/api/objects/upload-local', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const localStorageService = new LocalStorageService();
+      const fileBuffer = await readFile(req.file.path);
+      const { objectPath, publicURL } = await localStorageService.saveFile(fileBuffer, req.file.mimetype);
+
+      res.json({
+        uploadURL: publicURL,
+        objectPath,
+        successful: [{ uploadURL: publicURL }]
+      });
+    } catch (error) {
+      console.error("Error uploading file locally:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  // Serve local files
+  app.get('/api/files/:fileName', async (req, res) => {
+    try {
+      const { fileName } = req.params;
+      const localStorageService = new LocalStorageService();
+      const filePath = localStorageService.getLocalPath(fileName);
+      
+      const fileBuffer = await readFile(filePath);
+      res.setHeader('Content-Type', 'image/jpeg'); // Default to image
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error serving file:", error);
+      res.status(404).json({ error: "File not found" });
     }
   });
 

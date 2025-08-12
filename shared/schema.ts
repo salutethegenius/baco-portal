@@ -35,14 +35,14 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   phone: varchar("phone"),
   address: text("address"),
-  
+
   // Membership fields
   membershipType: varchar("membership_type").default("professional"),
   membershipStatus: varchar("membership_status").default("pending"),
   joinDate: timestamp("join_date").defaultNow(),
   nextPaymentDate: timestamp("next_payment_date"),
   annualFee: decimal("annual_fee", { precision: 10, scale: 2 }).default("350.00"),
-  
+
   // Additional BACO registration fields
   position: varchar("position"),
   company: varchar("company"),
@@ -60,7 +60,7 @@ export const users = pgTable("users", {
   yearsExperience: integer("years_experience"),
   isExistingMember: boolean("is_existing_member").default(false),
   membershipNumber: varchar("membership_number"),
-  
+
   // System fields
   isAdmin: boolean("is_admin").default(false),
   stripeCustomerId: varchar("stripe_customer_id"),
