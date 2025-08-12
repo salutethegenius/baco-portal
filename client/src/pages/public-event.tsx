@@ -153,22 +153,61 @@ export default function PublicEvent() {
             <Card className="sticky top-8">
               <CardHeader>
                 <CardTitle>Event Registration</CardTitle>
-                <CardDescription className="text-lg">
-              {event.description}
-            </CardDescription>
+                <CardDescription>
+                  {event.title}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-baco-primary mb-2">
+                    {event.price && parseFloat(event.price) > 0
+                      ? `$${event.price}`
+                      : "FREE"}
+                  </div>
+                  {event.price && parseFloat(event.price) > 0 && (
+                    <p className="text-gray-600 text-sm">BSD (Bahamian Dollar)</p>
+                  )}
+                </div>
 
-            {/* Event Flyer */}
-            {event.flyerImageUrl && (
-              <div className="mt-6">
-                <img 
-                  src={event.flyerImageUrl} 
-                  alt={`${event.title} flyer`}
-                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
-                />
-              </div>
-            )}
-          </CardHeader>
-        </Card>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span>Available Spots:</span>
+                    <span>
+                      {event.maxAttendees ? 
+                        Math.max(0, event.maxAttendees - (event.currentAttendees || 0)) : 
+                        'Unlimited'
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full bg-baco-primary hover:bg-baco-secondary"
+                  variant={registrationStatus.variant as any}
+                  disabled={registrationStatus.disabled}
+                  onClick={() => setShowRegistrationForm(true)}
+                  data-testid="button-register-event"
+                >
+                  {registrationStatus.text}
+                </Button>
+
+                {registrationStatus.disabled && registrationStatus.text === "Event Full" && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <p className="text-red-800 text-sm font-medium">
+                      This event has reached maximum capacity
+                    </p>
+                  </div>
+                )}
+
+                {registrationStatus.disabled && registrationStatus.text === "Event Ended" && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                    <p className="text-gray-800 text-sm font-medium">
+                      Registration is no longer available
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
