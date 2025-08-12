@@ -33,7 +33,7 @@ const apiEventSchema = z.object({
     typeof val === 'string' ? parseInt(val) : val
   ),
   status: z.string().optional().default("upcoming"),
-  
+
 });
 
 // Temporarily comment out Stripe initialization
@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🔄 Parsing event data...");
       const eventData = apiEventSchema.parse(req.body);
       console.log("✅ Event data parsed successfully:", eventData);
-      
+
       const slug = eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       console.log("🔗 Generated slug:", slug);
 
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("📝 Final event data to create:", eventToCreate);
       console.log("🔄 Creating event in database...");
-      
+
       const event = await storage.createEvent(eventToCreate);
       console.log("✅ Event created successfully:", event);
 
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         stack: error.stack
       });
-      
+
       if (error.name === 'ZodError') {
         console.error("❌ Validation errors:", error.errors);
         return res.status(400).json({ 
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           receivedData: req.body
         });
       }
-      
+
       res.status(500).json({ 
         message: "Failed to create event", 
         error: error?.message || 'Unknown error',
@@ -215,22 +215,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
 
-  app.delete('/api/events/:id', isAuthenticated, async (req: any, res) => {
+
+  app.delete("/api/events/:id", async (req, res) => {
     try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-
-      if (!user?.isAdmin) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
       await storage.deleteEvent(req.params.id);
       res.json({ message: "Event deleted successfully" });
     } catch (error) {
       console.error("Error deleting event:", error);
-      res.status(500).json({ message: "Failed to delete event" });
+
+      if (error.message && error.message.includes('existing registrations')) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to delete event" });
+      }
     }
   });
 
@@ -247,9 +245,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public event registration endpoint (works for both authenticated and non-authenticated users)
-  app.post('/api/event-registrations', async (req, res) => {
+  app.post("/api/event-registrations", async (req, res) => {
     try {
-      const { eventId, fullName, email, position, company, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
+      console.log('Event registration request received:', req.body);
+      const { eventId, fullName, email, position, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
+
+      // Validate required fields
+      if (!eventId || !firstName || !lastName || !email) {
+        console.log('Missing required fields:', { eventId, firstName, lastName, email });
+        return res.status(400).json({ message: "Missing required fields: eventId, firstName, lastName, email" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        console.log('Invalid email format:', email);
+        return res.status(400).json({ message: "Invalid email format" });
+      }
 
       // Check if user is authenticated (optional for public events)
       let userId = null;
@@ -258,17 +270,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate event exists and is public
+      console.log('Fetching event:', eventId);
       const event = await storage.getEvent(eventId);
       if (!event) {
+        console.log('Event not found:', eventId);
         return res.status(404).json({ message: "Event not found" });
       }
 
       if (!event.isPublic) {
+        console.log('Event is not public:', eventId);
         return res.status(403).json({ message: "Event is not public" });
       }
 
+      console.log('Event found:', { id: event.id, title: event.title, currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
+
       // Check if event is full
-      if (event.maxAttendees && (event.currentAttendees || 0) >= event.maxAttendees) {
+      if (event.maxAttendees && event.currentAttendees >= event.maxAttendees) {
+        console.log('Event is full:', { currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
         return res.status(400).json({ message: "Event is full" });
       }
 
@@ -276,31 +294,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId) {
         const existingRegistration = await storage.getUserEventRegistration(userId, eventId);
         if (existingRegistration) {
+          console.log('User already registered:', { userId, eventId });
           return res.status(400).json({ message: "You are already registered for this event" });
+        }
+      } else {
+        // Check for duplicate registration by email for non-authenticated users
+        const existingRegistration = await storage.findEventRegistrationByEmail(eventId, email);
+        if (existingRegistration) {
+          console.log('Duplicate registration attempt by email:', { eventId, email });
+          return res.status(400).json({ message: "Email already registered for this event" });
         }
       }
 
+      console.log('Creating registration...');
       const registration = await storage.createEventRegistration({
         eventId,
         userId, // Will be null for non-authenticated users, or user ID for authenticated users
-        firstName: fullName.split(' ')[0] || fullName,
-        lastName: fullName.split(' ').slice(1).join(' ') || '',
-        email,
-        position,
-        phoneNumber: phone,
-        notes,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        position: position?.trim(),
+        phoneNumber: phone?.trim(),
+        notes: notes?.trim(),
         registrationType: registrationType || null,
         paymentMethod: paymentMethod || "paylanes",
         paymentAmount: paymentAmount || event.price?.toString() || "0.00",
-        paymentStatus: "pending",
+        paymentStatus: parseFloat(paymentAmount || "0") > 0 ? "pending" : "paid",
       });
 
       // Note: currentAttendees is calculated dynamically
 
+      console.log('Registration created successfully:', registration.id);
       res.status(201).json(registration);
     } catch (error) {
       console.error("Error creating event registration:", error);
-      res.status(500).json({ message: "Failed to create event registration" });
+      res.status(500).json({ message: "Failed to create event registration: " + error.message });
     }
   });
 
@@ -531,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       console.log("🔄 Upload URL request from user:", (req as any).user?.email);
-      
+
       // Try AWS first, then object storage, finally local storage
       try {
         console.log("🔄 Trying AWS storage...");
@@ -802,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Set object ACL policy endpoint
   app.post('/api/objects/set-acl', isAuthenticated, async (req: any, res) => {
@@ -893,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { fileName } = req.params;
       const localStorageService = new LocalStorageService();
       const filePath = localStorageService.getLocalPath(fileName);
-      
+
       const fileBuffer = await readFile(filePath);
       res.setHeader('Content-Type', 'image/jpeg'); // Default to image
       res.send(fileBuffer);

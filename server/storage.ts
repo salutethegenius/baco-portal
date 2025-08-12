@@ -19,7 +19,7 @@ import {
   type InsertPayment,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, count } from "drizzle-orm";
+import { eq, desc, and, or, count, sql } from "drizzle-orm";
 import { generateSlug, ensureUniqueSlug } from "@shared/utils";
 
 export interface IStorage {
@@ -40,7 +40,7 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
-  
+
 
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
@@ -117,7 +117,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ 
+      .set({
         isAdmin,
         updatedAt: new Date()
       })
@@ -190,15 +190,45 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
-  async deleteEvent(id: string): Promise<void> {
-    await db.delete(events).where(eq(events.id, id));
+  async deleteEvent(eventId: string): Promise<void> {
+    try {
+      // First check if event has registrations
+      const registrations = await this.db
+        .select()
+        .from(eventRegistrations)
+        .where(eq(eventRegistrations.eventId, eventId));
+
+      if (registrations.length > 0) {
+        throw new Error(`Cannot delete event with ${registrations.length} existing registrations. Please contact registrants first.`);
+      }
+
+      await this.db.delete(events).where(eq(events.id, eventId));
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
   }
 
-  
+
 
   // Event registration operations
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
     return await db.select().from(eventRegistrations).where(eq(eventRegistrations.eventId, eventId));
+  }
+
+  async findEventRegistrationByEmail(eventId: string, email: string): Promise<any> {
+    const results = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(
+        and(
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.email, email.toLowerCase())
+        )
+      )
+      .limit(1);
+
+    return results[0] || null;
   }
 
   async getUserEventRegistrations(userId: string): Promise<(EventRegistration & { event: Event })[]> {
@@ -224,9 +254,25 @@ export class DatabaseStorage implements IStorage {
     return registration;
   }
 
-  async createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration> {
-    const [newRegistration] = await db.insert(eventRegistrations).values(registration).returning();
-    return newRegistration;
+  async createEventRegistration(data: InsertEventRegistration): Promise<EventRegistration> {
+    // Create the registration
+    const [registration] = await this.db
+      .insert(eventRegistrations)
+      .values(data)
+      .returning();
+
+    // Update event's current attendee count
+    const currentCount = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(eventRegistrations)
+      .where(eq(eventRegistrations.eventId, data.eventId));
+
+    await this.db
+      .update(events)
+      .set({ currentAttendees: currentCount[0].count })
+      .where(eq(events.id, data.eventId));
+
+    return registration;
   }
 
   async updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration> {

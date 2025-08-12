@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ const PAYMENT_OPTIONS = {
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/u2U2RNGA"
   },
   non_member_two_day: {
-    title: "Non Member Two Day Early Bird Rate", 
+    title: "Non Member Two Day Early Bird Rate",
     price: 750,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/ZtIvsYIp"
   }
@@ -49,7 +48,7 @@ const BANK_TRANSFER_INFO = {
 export default function EventRegistrationForm({ event, onClose, onSuccess }: EventRegistrationFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -66,10 +65,10 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
   const registerMutation = useMutation({
     mutationFn: async () => {
       setIsSubmitting(true);
-      
+
       const fullName = `${formData.firstName} ${formData.lastName}`.trim();
       const selectedOption = PAYMENT_OPTIONS[formData.registrationType as keyof typeof PAYMENT_OPTIONS];
-      
+
       // Create registration record
       const registration = await apiRequest("POST", "/api/event-registrations", {
         eventId: event.id,
@@ -117,13 +116,23 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+
+    // Comprehensive validation
+    const errors = [];
+
+    if (!formData.firstName?.trim()) errors.push("First name is required");
+    if (!formData.lastName?.trim()) errors.push("Last name is required");
+    if (!formData.email?.trim()) errors.push("Email is required");
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.push("Please enter a valid email address");
+    }
+
+    if (errors.length > 0) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Validation Error",
+        description: errors.join(", "),
         variant: "destructive",
       });
       return;
