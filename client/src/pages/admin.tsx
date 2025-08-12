@@ -260,7 +260,7 @@ export default function Admin() {
   };
 
   // File upload handlers for event flyers
-  const handleGetUploadParameters = async () => {
+  const handleGetUploadParameters = async (file: any) => {
     try {
       const response = await apiRequest("GET", "/api/objects/upload");
       const data = await response.json();
@@ -270,8 +270,17 @@ export default function Admin() {
         setFlyerObjectPath(data.objectPath);
       }
 
+      if (data.method === 'POST') {
+        // For local storage, we need to use form data
+        return {
+          method: "POST" as const,
+          url: data.uploadURL,
+          fields: {},
+        };
+      }
+
       return {
-        method: "PUT" as const,
+        method: data.method || "PUT" as const,
         url: data.uploadURL,
       };
     } catch (error) {
