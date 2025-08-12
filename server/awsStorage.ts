@@ -21,20 +21,25 @@ export class AWSStorageService {
   }
 
   async getUploadURL(fileType?: string): Promise<{ uploadURL: string; objectPath: string }> {
-    const key = `uploads/${uuidv4()}`;
-    
-    const command = new PutObjectCommand({
-      Bucket: this.bucketName,
-      Key: key,
-      ContentType: fileType || 'application/octet-stream',
-    });
+    try {
+      const key = `uploads/${uuidv4()}`;
+      
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        ContentType: fileType || 'application/octet-stream',
+      });
 
-    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+      const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
 
-    return {
-      uploadURL,
-      objectPath: key,
-    };
+      return {
+        uploadURL,
+        objectPath: key,
+      };
+    } catch (error: any) {
+      console.error('AWS S3 upload URL generation failed:', error);
+      throw new Error(`Failed to generate upload URL: ${error?.message || 'Unknown error'}`);
+    }
   }
 
   getPublicURL(objectPath: string): string {

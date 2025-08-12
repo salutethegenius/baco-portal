@@ -269,19 +269,21 @@ export default function Admin() {
   };
 
   const handleUploadComplete = (result: any) => {
+    console.log("Upload complete result:", result);
     if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      // Extract object path from the upload URL or use stored objectPath
-      const uploadUrl = uploadedFile.uploadURL || "";
-      const objectPath = uploadUrl.split('?')[0].split('/').slice(-1)[0] || uploadedFile.meta?.objectPath;
-      
-      if (objectPath) {
-        setFlyerObjectPath(`uploads/${objectPath}`);
-        toast({
-          title: "Upload Complete", 
-          description: "Event flyer uploaded successfully",
-        });
-      }
+      // The object path was already set in handleGetUploadParameters
+      // Just show success message
+      toast({
+        title: "Upload Complete", 
+        description: "Event flyer uploaded successfully",
+      });
+    } else if (result.failed && result.failed.length > 0) {
+      console.error("Upload failed:", result.failed);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload event flyer. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
