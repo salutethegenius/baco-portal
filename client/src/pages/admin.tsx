@@ -289,23 +289,29 @@ export default function Admin() {
         const uploadedFile = result.successful[0];
         const objectURL = uploadedFile.uploadURL.split('?')[0]; // Remove query parameters
 
-        // Set ACL policy and get normalized path
-        const response = await apiRequest("POST", "/api/objects/set-acl", {
-          objectURL,
-          visibility: "public",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setFlyerObjectPath(data.objectPath);
-
-          toast({
-            title: "Upload Successful",
-            description: "Photo uploaded successfully!",
+        // Try to set ACL policy, if it fails, just use the URL directly
+        try {
+          const response = await apiRequest("POST", "/api/objects/set-acl", {
+            objectURL,
+            visibility: "public",
           });
-        } else {
-          throw new Error("Failed to set object permissions");
+
+          if (response.ok) {
+            const data = await response.json();
+            setFlyerObjectPath(data.objectPath);
+          } else {
+            // Fallback: use the URL directly
+            setFlyerObjectPath(objectURL);
+          }
+        } catch (aclError) {
+          console.log("ACL setting failed, using URL directly:", aclError);
+          setFlyerObjectPath(objectURL);
         }
+
+        toast({
+          title: "Upload Successful",
+          description: "Photo uploaded successfully!",
+        });
       }
     } catch (error) {
       console.error("Upload completion error:", error);

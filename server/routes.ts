@@ -169,45 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload flyer for event
-  app.put("/api/events/:id/flyer", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-
-      if (!user?.isAdmin) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { objectURL } = req.body;
-      const eventId = req.params.id;
-
-      if (!objectURL) {
-        return res.status(400).json({ error: "objectURL is required" });
-      }
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        objectURL,
-        {
-          owner: userId,
-          visibility: "public",
-        },
-      );
-
-      // Update event with flyer path
-      const event = await storage.updateEventFlyer(eventId, objectPath);
-
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-
-      res.json({ event, objectPath });
-    } catch (error) {
-      console.error("Error uploading event flyer:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  
 
   app.delete('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -521,10 +483,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       console.log("Upload URL request from user:", (req as any).user?.email);
-      const awsStorageService = new AWSStorageService();
-      const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
-      console.log("Generated upload URL for object:", objectPath);
-      res.json({ uploadURL, objectPath });
+      
+      // Try AWS first, fallback to object storage
+      try {
+        const awsStorageService = new AWSStorageService();
+        const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
+        console.log("Generated AWS upload URL for object:", objectPath);
+        res.json({ uploadURL, objectPath });
+      } catch (awsError) {
+        console.log("AWS unavailable, using object storage:", awsError.message);
+        const objectStorageService = new ObjectStorageService();
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        res.json({ uploadURL, objectPath: uploadURL });
+      }
     } catch (error) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ message: "Failed to get upload URL", error: error.message });
@@ -760,8 +731,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload flyer for event - Corrected to POST and uses the new object storage service
-  app.post('/api/events/:id/flyer', isAuthenticated, async (req: any, res) => {
+  // Upload flyer for event - Use PUT to match client expectation
+  app.put('/api/events/:id/flyer', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
