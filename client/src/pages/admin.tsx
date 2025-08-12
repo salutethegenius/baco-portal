@@ -30,9 +30,11 @@ const eventSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   location: z.string().optional(),
-  price: z.string().transform((val) => parseFloat(val) || 0),
-  maxAttendees: z.string().transform((val) => parseInt(val) || 0),
+  price: z.coerce.number().min(0),
+  maxAttendees: z.coerce.number().min(1),
 });
+
+type EventFormData = z.infer<typeof eventSchema>;
 
 export default function Admin() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -42,6 +44,7 @@ export default function Admin() {
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [editEventDialogOpen, setEditEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [flyerObjectPath, setFlyerObjectPath] = useState<string>("");
 
   // Redirect if not admin
   useEffect(() => {
@@ -57,32 +60,32 @@ export default function Admin() {
     }
   }, [isAuthenticated, isLoading, user, toast]);
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{totalMembers: number; activeMembers: number; pendingDocuments: number}>({
     queryKey: ["/api/admin/stats"],
     enabled: !!user?.isAdmin,
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: !!user?.isAdmin,
   });
 
-  const { data: detailedUsers = [] } = useQuery({
+  const { data: detailedUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/users/detailed"],
     enabled: !!user?.isAdmin,
   });
 
-  const { data: documents = [] } = useQuery({
+  const { data: documents = [] } = useQuery<any[]>({
     queryKey: ["/api/documents/my"], // Admin should see all documents
     enabled: !!user?.isAdmin,
   });
 
-  const { data: events = [] } = useQuery({
+  const { data: events = [] } = useQuery<any[]>({
     queryKey: ["/api/events"],
     enabled: !!user?.isAdmin,
   });
 
-  const form = useForm<z.infer<typeof eventSchema>>({
+  const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: "",
@@ -90,17 +93,18 @@ export default function Admin() {
       startDate: "",
       endDate: "",
       location: "",
-      price: "0",
-      maxAttendees: "50",
+      price: 0,
+      maxAttendees: 50,
     },
   });
 
   const createEventMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof eventSchema>) => {
+    mutationFn: async (data: EventFormData) => {
       const response = await apiRequest("POST", "/api/events", {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
+        flyerObjectPath: flyerObjectPath,
       });
       return response.json();
     },
@@ -111,6 +115,7 @@ export default function Admin() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setCreateEventDialogOpen(false);
+      setFlyerObjectPath("");
       form.reset();
     },
     onError: (error: Error) => {
@@ -174,16 +179,17 @@ export default function Admin() {
     },
   });
 
-  const handleSubmit = (data: z.infer<typeof eventSchema>) => {
+  const handleSubmit = (data: EventFormData) => {
     createEventMutation.mutate(data);
   };
 
   const updateEventMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: z.infer<typeof eventSchema> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: EventFormData }) => {
       const response = await apiRequest("PUT", `/api/events/${id}`, {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
+        flyerObjectPath: flyerObjectPath,
       });
       return response.json();
     },
@@ -224,15 +230,46 @@ export default function Admin() {
       startDate: startDate.toISOString().slice(0, 16),
       endDate: endDate.toISOString().slice(0, 16),
       location: event.location || "",
-      price: event.price.toString(),
-      maxAttendees: event.maxAttendees?.toString() || "50",
+      price: parseFloat(event.price) || 0,
+      maxAttendees: event.maxAttendees || 50,
     });
+    setFlyerObjectPath(event.flyerObjectPath || "");
     setEditEventDialogOpen(true);
   };
 
-  const handleEditSubmit = (data: z.infer<typeof eventSchema>) => {
+  const handleEditSubmit = (data: EventFormData) => {
     if (editingEvent) {
       updateEventMutation.mutate({ id: editingEvent.id, data });
+    }
+  };
+
+  // File upload handlers for event flyers
+  const handleGetUploadParameters = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/objects/upload");
+      const data = await response.json();
+      return {
+        method: "PUT" as const,
+        url: data.uploadUrl,
+      };
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "Failed to get upload parameters",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleUploadComplete = (result: any) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadedFile = result.successful[0];
+      setFlyerObjectPath(uploadedFile.meta?.objectPath || "");
+      toast({
+        title: "Upload Complete",
+        description: "Event flyer uploaded successfully",
+      });
     }
   };
 
@@ -668,14 +705,25 @@ export default function Admin() {
                             <div className="space-y-2">
                               <FormLabel>Event Flyer (Optional)</FormLabel>
                               <ObjectUploader
-                                onUploadComplete={(objectPath) => {
-                                  console.log("Flyer uploaded:", objectPath);
-                                }}
-                                accept="image/*"
-                                maxSizeMB={5}
-                              />
+                                maxNumberOfFiles={1}
+                                maxFileSize={5242880} // 5MB
+                                onGetUploadParameters={handleGetUploadParameters}
+                                onComplete={handleUploadComplete}
+                                buttonClassName="w-full border-2 border-dashed border-gray-300 hover:border-baco-primary transition-colors"
+                              >
+                                <div className="flex flex-col items-center py-6">
+                                  <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
+                                  <span className="text-sm text-gray-600 font-medium">Click to upload flyer</span>
+                                  <span className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</span>
+                                  {flyerObjectPath && (
+                                    <span className="text-xs text-green-600 mt-2">✓ Flyer uploaded</span>
+                                  )}
+                                </div>
+                              </ObjectUploader>
                               <p className="text-sm text-gray-500">
-                                Upload a flyer image for the event (JPG, PNG, max 5MB)
+                                Upload a promotional flyer image for the event
                               </p>
                             </div>
                           </div>
@@ -829,6 +877,32 @@ export default function Admin() {
                                 </FormItem>
                               )}
                             />
+                          </div>
+
+                          {/* Image Upload for Edit Form */}
+                          <div className="space-y-2">
+                            <FormLabel>Event Flyer (Optional)</FormLabel>
+                            <ObjectUploader
+                              maxNumberOfFiles={1}
+                              maxFileSize={5242880} // 5MB
+                              onGetUploadParameters={handleGetUploadParameters}
+                              onComplete={handleUploadComplete}
+                              buttonClassName="w-full border-2 border-dashed border-gray-300 hover:border-baco-primary transition-colors"
+                            >
+                              <div className="flex flex-col items-center py-6">
+                                <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span className="text-sm text-gray-600 font-medium">Click to upload flyer</span>
+                                <span className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</span>
+                                {flyerObjectPath && (
+                                  <span className="text-xs text-green-600 mt-2">✓ Flyer uploaded</span>
+                                )}
+                              </div>
+                            </ObjectUploader>
+                            <p className="text-sm text-gray-500">
+                              Upload a promotional flyer image for the event
+                            </p>
                           </div>
 
                           <div className="flex space-x-4">
