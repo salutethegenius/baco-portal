@@ -142,6 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const eventData = apiEventSchema.parse(req.body);
+      
       const event = await storage.createEvent({
         ...eventData,
         createdBy: userId,
@@ -149,9 +150,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json(event);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating event:", error);
-      res.status(500).json({ message: "Failed to create event" });
+      if (error.name === 'ZodError') {
+        console.error("Validation errors:", error.errors);
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create event", error: error?.message || 'Unknown error' });
     }
   });
 
@@ -517,9 +522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ message: "Failed to get upload URL", error: error.message });
+      res.status(500).json({ message: "Failed to get upload URL", error: error?.message || 'Unknown error' });
     }
   });
 
