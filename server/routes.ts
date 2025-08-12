@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
+import { AWSStorageService } from "./awsStorage";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import QRCode from "qrcode";
@@ -517,14 +518,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+  app.get("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      console.log("Upload URL request from user:", (req as any).user?.email);
+      const awsStorageService = new AWSStorageService();
+      const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
+      console.log("Generated upload URL for object:", objectPath);
+      res.json({ uploadURL, objectPath });
     } catch (error) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ message: "Failed to get upload URL" });
+      res.status(500).json({ message: "Failed to get upload URL", error: error.message });
     }
   });
 

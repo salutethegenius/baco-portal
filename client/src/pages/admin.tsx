@@ -48,7 +48,7 @@ export default function Admin() {
 
   // Redirect if not admin
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !user?.isAdmin)) {
+    if (!isLoading && (!isAuthenticated || !(user as any)?.isAdmin)) {
       toast({
         title: "Access Denied",
         description: "You need admin privileges to access this page.",
@@ -62,27 +62,27 @@ export default function Admin() {
 
   const { data: stats } = useQuery<{totalMembers: number; activeMembers: number; pendingDocuments: number}>({
     queryKey: ["/api/admin/stats"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user as any)?.isAdmin,
   });
 
   const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user as any)?.isAdmin,
   });
 
   const { data: detailedUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/users/detailed"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user as any)?.isAdmin,
   });
 
   const { data: documents = [] } = useQuery<any[]>({
     queryKey: ["/api/documents/my"], // Admin should see all documents
-    enabled: !!user?.isAdmin,
+    enabled: !!(user as any)?.isAdmin,
   });
 
   const { data: events = [] } = useQuery<any[]>({
     queryKey: ["/api/events"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user as any)?.isAdmin,
   });
 
   const form = useForm<EventFormData>({
@@ -248,9 +248,15 @@ export default function Admin() {
     try {
       const response = await apiRequest("GET", "/api/objects/upload");
       const data = await response.json();
+      
+      // Store the objectPath for later use
+      if (data.objectPath) {
+        setFlyerObjectPath(data.objectPath);
+      }
+      
       return {
         method: "PUT" as const,
-        url: data.uploadUrl,
+        url: data.uploadURL,
       };
     } catch (error) {
       toast({
@@ -265,11 +271,17 @@ export default function Admin() {
   const handleUploadComplete = (result: any) => {
     if (result.successful && result.successful.length > 0) {
       const uploadedFile = result.successful[0];
-      setFlyerObjectPath(uploadedFile.meta?.objectPath || "");
-      toast({
-        title: "Upload Complete",
-        description: "Event flyer uploaded successfully",
-      });
+      // Extract object path from the upload URL or use stored objectPath
+      const uploadUrl = uploadedFile.uploadURL || "";
+      const objectPath = uploadUrl.split('?')[0].split('/').slice(-1)[0] || uploadedFile.meta?.objectPath;
+      
+      if (objectPath) {
+        setFlyerObjectPath(`uploads/${objectPath}`);
+        toast({
+          title: "Upload Complete", 
+          description: "Event flyer uploaded successfully",
+        });
+      }
     }
   };
 
@@ -320,7 +332,7 @@ export default function Admin() {
     }
   };
 
-  if (!user?.isAdmin) {
+  if (!(user as any)?.isAdmin) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -514,7 +526,7 @@ export default function Admin() {
                                           Grant Admin Access
                                         </Button>
                                       )}
-                                      {member.isAdmin && member.id !== user?.id && (
+                                      {member.isAdmin && member.id !== (user as any)?.id && (
                                         <Button
                                           variant="destructive" 
                                           size="sm"
@@ -539,7 +551,7 @@ export default function Admin() {
                                   Make Admin
                                 </Button>
                               )}
-                              {member.isAdmin && member.id !== user?.id && (
+                              {member.isAdmin && member.id !== (user as any)?.id && (
                                 <Button
                                   variant="outline" 
                                   size="sm"
