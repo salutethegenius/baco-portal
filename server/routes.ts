@@ -33,6 +33,7 @@ const apiEventSchema = z.object({
     typeof val === 'string' ? parseInt(val) : val
   ),
   status: z.string().optional().default("upcoming"),
+  flyerObjectPath: z.string().optional().nullable(),
 });
 
 // Temporarily comment out Stripe initialization
@@ -143,8 +144,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const eventData = apiEventSchema.parse(req.body);
       
+      // Generate flyer image URL if flyerObjectPath is provided
+      const flyerImageUrl = eventData.flyerObjectPath 
+        ? new AWSStorageService().getPublicURL(eventData.flyerObjectPath)
+        : null;
+      
       const event = await storage.createEvent({
         ...eventData,
+        flyerImageUrl,
         createdBy: userId,
         slug: eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       });
@@ -170,7 +177,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const eventData = apiEventSchema.parse(req.body);
-      const event = await storage.updateEvent(req.params.id, eventData);
+      
+      // Generate flyer image URL if flyerObjectPath is provided
+      const updateData = {
+        ...eventData,
+        flyerImageUrl: eventData.flyerObjectPath 
+          ? new AWSStorageService().getPublicURL(eventData.flyerObjectPath)
+          : null,
+      };
+      
+      const event = await storage.updateEvent(req.params.id, updateData);
 
       if (!event) {
         return res.status(404).json({ message: "Event not found" });

@@ -190,7 +190,11 @@ export default function Admin() {
   });
 
   const handleSubmit = (data: EventFormData) => {
-    createEventMutation.mutate(data);
+    const eventData = {
+      ...data,
+      flyerObjectPath: flyerObjectPath || null,
+    };
+    createEventMutation.mutate(eventData);
   };
 
   const updateEventMutation = useMutation({
@@ -199,19 +203,11 @@ export default function Admin() {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
+        flyerObjectPath: flyerObjectPath || null,
       };
 
       const response = await apiRequest("PUT", `/api/events/${id}`, eventData);
-      const event = await response.json();
-
-      // If we have a flyer, upload it after updating the event
-      if (flyerObjectPath) {
-        await apiRequest("PUT", `/api/events/${id}/flyer`, {
-          objectURL: flyerObjectPath,
-        });
-      }
-
-      return event;
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -269,6 +265,11 @@ export default function Admin() {
       const response = await apiRequest("GET", "/api/objects/upload");
       const data = await response.json();
 
+      // Store the object path when we get the upload URL
+      if (data.objectPath) {
+        setFlyerObjectPath(data.objectPath);
+      }
+
       return {
         method: "PUT" as const,
         url: data.uploadURL,
@@ -284,40 +285,18 @@ export default function Admin() {
   };
 
   const handleUploadComplete = async (result: any) => {
-    try {
-      if (result.successful && result.successful.length > 0) {
-        const uploadedFile = result.successful[0];
-        const objectURL = uploadedFile.uploadURL.split('?')[0]; // Remove query parameters
-
-        // Try to set ACL policy, if it fails, just use the URL directly
-        try {
-          const response = await apiRequest("POST", "/api/objects/set-acl", {
-            objectURL,
-            visibility: "public",
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setFlyerObjectPath(data.objectPath);
-          } else {
-            // Fallback: use the URL directly
-            setFlyerObjectPath(objectURL);
-          }
-        } catch (aclError) {
-          console.log("ACL setting failed, using URL directly:", aclError);
-          setFlyerObjectPath(objectURL);
-        }
-
-        toast({
-          title: "Upload Successful",
-          description: "Photo uploaded successfully!",
-        });
-      }
-    } catch (error) {
-      console.error("Upload completion error:", error);
+    console.log("Upload complete result:", result);
+    if (result.successful && result.successful.length > 0) {
       toast({
-        title: "Upload Error",
-        description: "Failed to process uploaded file",
+        title: "Upload Complete",
+        description: "Event flyer uploaded successfully!",
+      });
+    } else if (result.failed && result.failed.length > 0) {
+      console.error("Upload failed:", result.failed);
+      setFlyerObjectPath(""); // Clear on failure
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload event flyer. Please try again.",
         variant: "destructive",
       });
     }
