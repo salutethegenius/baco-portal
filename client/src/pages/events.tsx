@@ -2,14 +2,11 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import EventCard from "@/components/EventCard";
-import EventRegistrationForm from "@/components/EventRegistrationForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +15,6 @@ export default function Events() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const { user } = useAuth();
 
   const { data: events = [] } = useQuery({
@@ -193,21 +189,13 @@ export default function Events() {
 
                             {!isRegistered(event.id) && new Date(event.startDate) > new Date() && (event.maxAttendees === null || event.maxAttendees === undefined || (event.currentAttendees || 0) < event.maxAttendees) && (
                               <Dialog open={selectedEvent?.id === event.id} onOpenChange={(open) => !open && setSelectedEvent(null)}>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    onClick={() => setSelectedEventForRegistration(event)}
-                                    className="bg-baco-primary hover:bg-baco-secondary"
-                                    data-testid={`button-register-${event.id}`}
-                                  >
-                                    {event.price > 0 ? `Register - $${event.price}` : 'Register (Free)'}
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                  <DialogHeader>
-                                    <DialogTitle>Register for {event.title}</DialogTitle>
-                                  </DialogHeader>
-                                  <EventRegistrationForm event={event} onClose={() => setSelectedEvent(null)} />
-                                </DialogContent>
+                                <Button
+                                  onClick={() => navigate(`/event-registration/event/${event.id}`)}
+                                  className="bg-baco-primary hover:bg-baco-secondary"
+                                  data-testid={`button-register-${event.id}`}
+                                >
+                                  {event.price > 0 ? `Register - $${event.price}` : 'Register (Free)'}
+                                </Button>
                               </Dialog>
                             )}
                           </div>

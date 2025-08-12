@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,18 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, MapPin, Users, DollarSign, User } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
+import { queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
-import EventRegistrationForm from "@/components/EventRegistrationForm";
 
 export default function EventDetail() {
   const { eventId } = useParams();
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
 
   // Fetch event details
   const { data: event, isLoading: eventLoading } = useQuery({
@@ -33,10 +27,7 @@ export default function EventDetail() {
     enabled: isAuthenticated,
   });
 
-  const handleRegistrationSuccess = () => {
-    setShowRegistrationForm(false);
-    queryClient.invalidateQueries({ queryKey: ["/api/event-registrations/my"] });
-  };
+  
 
   if (eventLoading) {
     return (
@@ -266,7 +257,7 @@ export default function EventDetail() {
                     className="w-full"
                     variant={registrationStatus.variant as any}
                     disabled={registrationStatus.disabled}
-                    onClick={() => setShowRegistrationForm(true)}
+                    onClick={() => navigate(`/event-registration/event/${event.id}`)}
                     data-testid="button-register-event"
                   >
                     {registrationStatus.text}
@@ -286,14 +277,7 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* Registration Form Modal */}
-      {showRegistrationForm && (
-        <EventRegistrationForm
-          event={event}
-          onClose={() => setShowRegistrationForm(false)}
-          onSuccess={handleRegistrationSuccess}
-        />
-      )}
+      
     </Layout>
   );
 }

@@ -37,10 +37,10 @@ function Router() {
       {/* Public routes (no auth required) */}
       <Route path="/events/:slug" component={PublicEvent} />
       <Route path="/member-registration" component={MemberRegistration} />
-      
+
       {/* Authentication route */}
       <Route path="/auth" component={AuthPage} />
-      
+
       {/* Authenticated routes */}
       {!isAuthenticated ? (
         <Route path="/" component={AuthPage} />

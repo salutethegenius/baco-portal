@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useParams } from "wouter";
 import { format } from "date-fns";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -10,19 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function EventRegistration() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { slug, eventId } = useParams();
   const [, navigate] = useLocation();
-  const [match, params] = useRoute("/events/:eventId/register");
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const eventId = params?.eventId;
-
   const { data: event, isLoading } = useQuery({
-    queryKey: [`/api/events/${eventId}`],
-    enabled: !!eventId,
+    queryKey: eventId ? ["/api/events", eventId] : ["/api/public/events", slug],
+    enabled: !!(slug || eventId),
   });
 
   const { data: myRegistrations = [] } = useQuery({
@@ -32,14 +30,14 @@ export default function EventRegistration() {
   const registerMutation = useMutation({
     mutationFn: async () => {
       setIsRegistering(true);
-      
+
       if (event.price > 0) {
         // For paid events, redirect to Paylanes payment system
         const paymentUrl = `https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7?amount=${event.price}&description=Event Registration: ${encodeURIComponent(event.title)}`;
         window.location.href = paymentUrl;
         return;
       }
-      
+
       // Register for free events directly
       await apiRequest("POST", "/api/event-registrations", {
         eventId: eventId,
@@ -71,7 +69,7 @@ export default function EventRegistration() {
     (reg: any) => reg.eventId === eventId || reg.event?.id === eventId
   );
 
-  if (!match) {
+  if (!slug && !eventId) {
     navigate("/events");
     return null;
   }
@@ -109,8 +107,8 @@ export default function EventRegistration() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate("/events")}
             className="mb-4"
             data-testid="button-back-to-events"
@@ -160,7 +158,7 @@ export default function EventRegistration() {
                     <h3 className="font-semibold mb-2">Description</h3>
                     <p className="text-gray-600">{event.description}</p>
                   </div>
-                  
+
                   {event.location && (
                     <div>
                       <h3 className="font-semibold mb-2">Location</h3>
@@ -178,10 +176,10 @@ export default function EventRegistration() {
                     </p>
                     {event.maxAttendees && (
                       <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-baco-primary h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.min(((event.currentAttendees || 0) / event.maxAttendees) * 100, 100)}%` 
+                        <div
+                          className="bg-baco-primary h-2 rounded-full"
+                          style={{
+                            width: `${Math.min(((event.currentAttendees || 0) / event.maxAttendees) * 100, 100)}%`
                           }}
                         ></div>
                       </div>
@@ -208,8 +206,8 @@ export default function EventRegistration() {
                     <p className="text-sm text-gray-600 mb-4">
                       You're all set for this event. Check your registrations in your events page.
                     </p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => navigate("/events")}
                       className="w-full"
                     >
