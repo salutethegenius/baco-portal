@@ -760,6 +760,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload flyer for event - Corrected to POST and uses the new object storage service
+  app.post('/api/events/:id/flyer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { objectURL } = req.body;
+      const eventId = req.params.id;
+
+      if (!objectURL) {
+        return res.status(400).json({ error: "objectURL is required" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        objectURL,
+        {
+          owner: userId,
+          visibility: "public",
+        },
+      );
+
+      // Update event with flyer path
+      const event = await storage.updateEventFlyer(eventId, objectPath);
+
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      res.json({ event, objectPath });
+    } catch (error) {
+      console.error("Error uploading event flyer:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Set object ACL policy endpoint
+  app.post('/api/objects/set-acl', isAuthenticated, async (req: any, res) => {
+    try {
+      const { objectURL, visibility } = req.body;
+      const userId = req.user.id;
+
+      const objectStorageService = new ObjectStorageService(); // Instantiating here to ensure it's available
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        objectURL,
+        {
+          owner: userId,
+          visibility: visibility || "public",
+        }
+      );
+
+      res.json({ objectPath });
+    } catch (error) {
+      console.error("Error setting ACL policy:", error);
+      res.status(500).json({ error: "Failed to set ACL policy" });
+    }
+  });
+
+
   const httpServer = createServer(app);
   return httpServer;
 }
