@@ -49,7 +49,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
           <Route path="/event/:eventId" component={EventDetail} />
-          <Route path="/events/:eventId/register" component={lazy(() => import("@/pages/event-registration"))} />
+          <Route path="/event-registration/event/:eventId" component={lazy(() => import("@/pages/event-registration"))} />
           <Route path="/messages" component={Messages} />
           <Route path="/documents" component={Documents} />
           <Route path="/profile" component={Profile} />

@@ -10,12 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { Dialog } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Events() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   const { data: events = [] } = useQuery({
     queryKey: ["/api/events"],
