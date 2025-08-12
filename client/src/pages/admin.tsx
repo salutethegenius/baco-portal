@@ -100,13 +100,23 @@ export default function Admin() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      const response = await apiRequest("POST", "/api/events", {
+      const eventData = {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
-        flyerObjectPath: flyerObjectPath,
-      });
-      return response.json();
+      };
+
+      const response = await apiRequest("POST", "/api/events", eventData);
+      const event = await response.json();
+
+      // If we have a flyer, upload it after creating the event
+      if (flyerObjectPath) {
+        await apiRequest("PUT", `/api/events/${event.id}/flyer`, {
+          objectURL: flyerObjectPath,
+        });
+      }
+
+      return event;
     },
     onSuccess: () => {
       toast({
@@ -185,13 +195,23 @@ export default function Admin() {
 
   const updateEventMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EventFormData }) => {
-      const response = await apiRequest("PUT", `/api/events/${id}`, {
+      const eventData = {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
-        flyerObjectPath: flyerObjectPath,
-      });
-      return response.json();
+      };
+
+      const response = await apiRequest("PUT", `/api/events/${id}`, eventData);
+      const event = await response.json();
+
+      // If we have a flyer, upload it after updating the event
+      if (flyerObjectPath) {
+        await apiRequest("PUT", `/api/events/${id}/flyer`, {
+          objectURL: flyerObjectPath,
+        });
+      }
+
+      return event;
     },
     onSuccess: () => {
       toast({
@@ -249,11 +269,6 @@ export default function Admin() {
       const response = await apiRequest("GET", "/api/objects/upload");
       const data = await response.json();
 
-      // Store the objectPath for later use
-      if (data.objectPath) {
-        setFlyerObjectPath(data.objectPath);
-      }
-
       return {
         method: "PUT" as const,
         url: data.uploadURL,
@@ -274,21 +289,13 @@ export default function Admin() {
         const uploadedFile = result.successful[0];
         const objectURL = uploadedFile.uploadURL.split('?')[0]; // Remove query parameters
 
-        // Set ACL policy and get normalized path
-        const response = await apiRequest("POST", "/api/objects/set-acl", {
-          objectURL,
-          visibility: "public",
+        // Set the flyer object path directly from the upload URL
+        setFlyerObjectPath(objectURL);
+
+        toast({
+          title: "Upload Successful",
+          description: "Photo uploaded successfully!",
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setFlyerObjectPath(data.objectPath);
-
-          toast({
-            title: "Upload Successful",
-            description: "Photo uploaded successfully!",
-          });
-        }
       }
     } catch (error) {
       console.error("Upload completion error:", error);

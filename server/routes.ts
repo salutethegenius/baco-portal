@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public event registration endpoint (works for both authenticated and non-authenticated users)
   app.post('/api/event-registrations', async (req, res) => {
     try {
-      const { eventId, fullName, email, position, company, phone, notes } = req.body;
+      const { eventId, fullName, email, position, company, notes, phone } = req.body;
 
       // Check if user is authenticated (optional for public events)
       let userId = null;
