@@ -19,17 +19,17 @@ interface EventRegistrationFormProps {
 
 const PAYMENT_OPTIONS = {
   member_two_day: {
-    title: "Two Day Member Early Bird Rate",
+    title: "Two Day Member Rate",
     price: 650,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/TvE9LbMv"
   },
   non_member_one_day: {
-    title: "Non Member One Day Early Bird Rate",
+    title: "Non Member One Day Rate",
     price: 500,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/u2U2RNGA"
   },
   non_member_two_day: {
-    title: "Non Member Two Day Early Bird Rate",
+    title: "Non Member Two Day Rate",
     price: 750,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/ZtIvsYIp"
   }

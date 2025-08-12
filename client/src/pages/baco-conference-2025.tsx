@@ -87,7 +87,7 @@ export default function BacoConference2025() {
             className="bg-gold-500 hover:bg-gold-600 text-black font-bold text-xl px-12 py-4 h-auto"
             onClick={() => setShowRegistrationForm(true)}
           >
-            Register Today - Secure Your Spot
+            Register Now
           </Button>
         </div>
       </section>
@@ -192,7 +192,7 @@ export default function BacoConference2025() {
                   className="bg-baco-primary hover:bg-baco-secondary text-white font-semibold px-8 py-3"
                   onClick={() => setShowRegistrationForm(true)}
                 >
-                  Register Now - $350 BSD
+                  Register Now
                 </Button>
               </div>
             </div>
@@ -206,9 +206,9 @@ export default function BacoConference2025() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-baco-primary mb-2">$350</div>
+                  <div className="text-2xl font-bold text-baco-primary mb-2">Starting at $500</div>
                   <p className="text-gray-600">BSD (Bahamian Dollar)</p>
-                  <p className="text-sm text-green-600 font-medium mt-1">Early Bird Special Available</p>
+                  <p className="text-sm text-green-600 font-medium mt-1">Multiple Options Available</p>
                 </div>
 
                 <div className="space-y-3 text-sm">
@@ -242,7 +242,7 @@ export default function BacoConference2025() {
                   className="w-full bg-gold-500 hover:bg-gold-600 text-black font-bold py-3"
                   onClick={() => setShowRegistrationForm(true)}
                 >
-                  Secure Your Spot Now
+                  Register Now
                 </Button>
               </CardContent>
             </Card>
@@ -265,7 +265,7 @@ export default function BacoConference2025() {
             className="bg-white text-baco-primary hover:bg-gray-100 font-bold text-xl px-12 py-4 h-auto"
             onClick={() => setShowRegistrationForm(true)}
           >
-            Register Today
+            Register Now
           </Button>
         </div>
       </section>
