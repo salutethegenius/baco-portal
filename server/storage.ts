@@ -412,8 +412,8 @@ export class DatabaseStorage implements IStorage {
     const adminExists = await db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
     if (adminExists.length === 0) {
       await db.insert(users).values({
-        id: "admin-user-1",
         email: "admin@baco-bahamas.com",
+        password: "$2b$10$k8Y5H.F3QjF5O3vGnVgkJuE7K5eZgO8YwK2FzVZ3FQy9G5pK8HqO.", // bcrypt hash of "admin123"
         firstName: "Admin",
         lastName: "User",
         isAdmin: true,
@@ -428,10 +428,10 @@ export class DatabaseStorage implements IStorage {
       const adminUser = await db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
       const adminId = adminUser.length > 0 ? adminUser[0].id : "admin-user-1";
 
-      await db.insert(events).values([
+      const sampleEvents = [
         {
-          id: "evt_001",
           title: "BACO Annual Conference 2024",
+          slug: "baco-annual-conference-2024",
           description: "Join us for our premier annual conference featuring industry experts, networking opportunities, and professional development sessions. This year's theme focuses on emerging compliance challenges in the digital age.",
           startDate: new Date("2024-03-15T09:00:00Z"),
           endDate: new Date("2024-03-15T17:00:00Z"),
@@ -443,8 +443,8 @@ export class DatabaseStorage implements IStorage {
           createdBy: adminId,
         },
         {
-          id: "evt_002", 
           title: "Regulatory Updates Workshop",
+          slug: "regulatory-updates-workshop",
           description: "Stay current with the latest regulatory changes affecting compliance professionals in the Bahamas. Interactive workshop with Q&A sessions.",
           startDate: new Date("2024-02-28T14:00:00Z"),
           endDate: new Date("2024-02-28T16:00:00Z"),
@@ -456,8 +456,8 @@ export class DatabaseStorage implements IStorage {
           createdBy: adminId,
         },
         {
-          id: "evt_003",
           title: "Monthly Networking Mixer",
+          slug: "monthly-networking-mixer",
           description: "Casual networking event for BACO members. Light refreshments provided. Great opportunity to connect with fellow compliance professionals.",
           startDate: new Date("2024-02-20T18:00:00Z"),
           endDate: new Date("2024-02-20T20:00:00Z"),
@@ -469,8 +469,8 @@ export class DatabaseStorage implements IStorage {
           createdBy: adminId,
         },
         {
-          id: "evt_004",
           title: "Anti-Money Laundering Certification",
+          slug: "anti-money-laundering-certification",
           description: "Comprehensive AML certification course approved by regulatory authorities. Includes materials and certificate upon completion.",
           startDate: new Date("2024-04-10T09:00:00Z"),
           endDate: new Date("2024-04-11T17:00:00Z"),
@@ -481,7 +481,11 @@ export class DatabaseStorage implements IStorage {
           status: "upcoming",
           createdBy: adminId,
         }
-      ]);
+      ];
+
+      for (const event of sampleEvents) {
+        await db.insert(events).values(event);
+      }
       console.log("Sample events created");
     }
   }
