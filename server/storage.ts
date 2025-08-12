@@ -199,18 +199,6 @@ export class DatabaseStorage implements IStorage {
       .update(events)
       .set({ 
         flyerObjectPath,
-        updatedAt: new Date() 
-      })
-      .where(eq(events.id, id))
-      .returning();
-    return event;
-  }
-
-  async updateEventFlyer(id: string, flyerObjectPath: string): Promise<Event> {
-    const [event] = await db
-      .update(events)
-      .set({ 
-        flyerObjectPath,
         flyerImageUrl: `/objects${flyerObjectPath}`,
         updatedAt: new Date() 
       })
