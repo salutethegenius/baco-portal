@@ -1,4 +1,3 @@
-
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -24,24 +23,35 @@ export class LocalStorageService {
     }
   }
 
-  async saveFile(buffer: Buffer, fileType?: string): Promise<{ objectPath: string; publicURL: string }> {
-    try {
-      await this.ensureUploadDir();
-      
-      const fileName = `${randomUUID()}`;
-      const filePath = path.join(this.uploadDir, fileName);
-      
-      await writeFile(filePath, buffer);
-      
-      const objectPath = `uploads/${fileName}`;
-      const publicURL = `/api/files/${fileName}`;
-      
-      console.log(`File saved locally: ${fileName}`);
-      return { objectPath, publicURL };
-    } catch (error) {
-      console.error('Failed to save file locally:', error);
-      throw error;
-    }
+  async saveFile(buffer: Buffer, mimeType: string): Promise<{ objectPath: string; publicURL: string }> {
+    console.log("🔄 LocalStorageService: Saving file", {
+      bufferSize: buffer.length,
+      mimeType,
+      uploadsDir: this.uploadsDir
+    });
+
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    const extension = mimeType.includes('jpeg') || mimeType.includes('jpg') ? '.jpg' : 
+                     mimeType.includes('png') ? '.png' : 
+                     mimeType.includes('gif') ? '.gif' : '';
+    const fullFileName = fileName + extension;
+    const filePath = path.join(this.uploadDir, fullFileName);
+
+    console.log("📁 LocalStorageService: File details", {
+      fileName,
+      extension,
+      fullFileName,
+      filePath
+    });
+
+    await writeFile(filePath, buffer);
+    console.log("✅ LocalStorageService: File written successfully");
+
+    const publicURL = `/api/files/${fullFileName}`;
+    const result = { objectPath: fullFileName, publicURL };
+
+    console.log("✅ LocalStorageService: Result", result);
+    return result;
   }
 
   getLocalPath(fileName: string): string {

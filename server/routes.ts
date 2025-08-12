@@ -135,35 +135,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("🚀 Event creation request received");
+      console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
+      console.log("👤 User ID:", req.user.id);
+
       const userId = req.user.id;
       const user = await storage.getUser(userId);
 
       if (!user?.isAdmin) {
+        console.error("❌ Non-admin user attempted to create event:", { userId, userIsAdmin: user?.isAdmin });
         return res.status(403).json({ message: "Admin access required" });
       }
 
+      console.log("✅ Admin user verified:", { userId, email: user.email });
+
+      console.log("🔄 Parsing event data...");
       const eventData = apiEventSchema.parse(req.body);
+      console.log("✅ Event data parsed successfully:", eventData);
       
       // Generate flyer image URL if flyerObjectPath is provided
-      const flyerImageUrl = eventData.flyerObjectPath 
-        ? new AWSStorageService().getPublicURL(eventData.flyerObjectPath)
-        : null;
-      
-      const event = await storage.createEvent({
+      let flyerImageUrl = null;
+      if (eventData.flyerObjectPath && eventData.flyerObjectPath !== 'local') {
+        console.log("🖼️ Processing flyer object path:", eventData.flyerObjectPath);
+        try {
+          if (eventData.flyerObjectPath.startsWith('/api/files/')) {
+            // Local file
+            flyerImageUrl = eventData.flyerObjectPath;
+            console.log("✅ Local flyer URL:", flyerImageUrl);
+          } else {
+            // AWS or other cloud storage
+            flyerImageUrl = new AWSStorageService().getPublicURL(eventData.flyerObjectPath);
+            console.log("✅ AWS flyer URL generated:", flyerImageUrl);
+          }
+        } catch (flyerError: any) {
+          console.error("⚠️ Error processing flyer URL:", flyerError);
+          // Continue without flyer
+        }
+      } else {
+        console.log("ℹ️ No flyer object path provided");
+      }
+
+      const slug = eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      console.log("🔗 Generated slug:", slug);
+
+      const eventToCreate = {
         ...eventData,
         flyerImageUrl,
         createdBy: userId,
-        slug: eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      });
+        slug,
+      };
+
+      console.log("📝 Final event data to create:", eventToCreate);
+      console.log("🔄 Creating event in database...");
+      
+      const event = await storage.createEvent(eventToCreate);
+      console.log("✅ Event created successfully:", event);
 
       res.json(event);
     } catch (error: any) {
-      console.error("Error creating event:", error);
+      console.error("❌ Error creating event:", {
+        error: error.message,
+        stack: error.stack
+      });
+      
       if (error.name === 'ZodError') {
-        console.error("Validation errors:", error.errors);
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
+        console.error("❌ Validation errors:", error.errors);
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors,
+          receivedData: req.body
+        });
       }
-      res.status(500).json({ message: "Failed to create event", error: error?.message || 'Unknown error' });
+      
+      res.status(500).json({ 
+        message: "Failed to create event", 
+        error: error?.message || 'Unknown error',
+        details: error?.stack
+      });
     }
   });
 
@@ -514,33 +562,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      console.log("Upload URL request from user:", (req as any).user?.email);
+      console.log("🔄 Upload URL request from user:", (req as any).user?.email);
       
       // Try AWS first, then object storage, finally local storage
       try {
+        console.log("🔄 Trying AWS storage...");
         const awsStorageService = new AWSStorageService();
         const { uploadURL, objectPath } = await awsStorageService.getUploadURL('image/jpeg');
-        console.log("Generated AWS upload URL for object:", objectPath);
+        console.log("✅ AWS upload URL generated:", { uploadURL, objectPath });
         res.json({ uploadURL, objectPath, method: 'PUT' });
       } catch (awsError) {
-        console.log("AWS unavailable, trying object storage:", (awsError as Error).message);
+        console.log("⚠️ AWS unavailable, trying object storage:", (awsError as Error).message);
         try {
+          console.log("🔄 Trying object storage...");
           const objectStorageService = new ObjectStorageService();
           const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+          console.log("✅ Object storage upload URL generated:", uploadURL);
           res.json({ uploadURL, objectPath: uploadURL, method: 'PUT' });
         } catch (objError) {
-          console.log("Object storage unavailable, using local storage:", (objError as Error).message);
+          console.log("⚠️ Object storage unavailable, using local storage:", (objError as Error).message);
+          console.log("🔄 Using local storage...");
           // For local storage, we'll use a POST endpoint instead
-          res.json({ 
+          const localResponse = { 
             uploadURL: '/api/objects/upload-local',
-            objectPath: 'local',
+            objectPath: `local-${Date.now()}`,
             method: 'POST'
-          });
+          };
+          console.log("✅ Local storage configuration:", localResponse);
+          res.json(localResponse);
         }
       }
     } catch (error: any) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ message: "Failed to get upload URL", error: error?.message || 'Unknown error' });
+      console.error("❌ Error getting upload URL:", {
+        error: error.message,
+        stack: error.stack
+      });
+      res.status(500).json({ 
+        message: "Failed to get upload URL", 
+        error: error?.message || 'Unknown error',
+        details: error?.stack 
+      });
     }
   });
 
@@ -844,29 +905,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const upload = multer({ dest: 'temp/' });
   app.post('/api/objects/upload-local', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
+      console.log("🔄 Local file upload request received");
+      console.log("📁 Request file info:", {
+        hasFile: !!req.file,
+        filename: req.file?.filename,
+        originalname: req.file?.originalname,
+        mimetype: req.file?.mimetype,
+        size: req.file?.size,
+        path: req.file?.path
+      });
+
       if (!req.file) {
+        console.error("❌ No file in upload request");
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      console.log("🔄 Reading uploaded file...");
       const localStorageService = new LocalStorageService();
       const fileBuffer = await readFile(req.file.path);
+      console.log("✅ File read successfully, size:", fileBuffer.length, "bytes");
+
+      console.log("🔄 Saving file to local storage...");
       const { objectPath, publicURL } = await localStorageService.saveFile(fileBuffer, req.file.mimetype);
+      console.log("✅ File saved to local storage:", { objectPath, publicURL });
 
       // Clean up temp file
       try {
         await require('fs/promises').unlink(req.file.path);
+        console.log("✅ Temp file cleaned up:", req.file.path);
       } catch (unlinkError) {
-        console.warn('Failed to cleanup temp file:', unlinkError);
+        console.warn('⚠️ Failed to cleanup temp file:', unlinkError);
       }
 
-      res.json({
+      const response = {
         uploadURL: publicURL,
-        objectPath,
+        objectPath: publicURL, // Use publicURL as objectPath for consistency
         successful: [{ uploadURL: publicURL }]
+      };
+
+      console.log("✅ Local upload response:", response);
+      res.json(response);
+    } catch (error: any) {
+      console.error("❌ Error uploading file locally:", {
+        error: error.message,
+        stack: error.stack
       });
-    } catch (error) {
-      console.error("Error uploading file locally:", error);
-      res.status(500).json({ error: "Failed to upload file" });
+      res.status(500).json({ 
+        error: "Failed to upload file", 
+        details: error.message 
+      });
     }
   });
 
