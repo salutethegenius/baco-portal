@@ -23,6 +23,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useLocation } from "wouter";
 import ObjectUploader from "@/components/ObjectUploader";
+import { Award } from "lucide-react";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
