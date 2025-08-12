@@ -523,13 +523,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Generated AWS upload URL for object:", objectPath);
         res.json({ uploadURL, objectPath, method: 'PUT' });
       } catch (awsError) {
-        console.log("AWS unavailable, trying object storage:", awsError.message);
+        console.log("AWS unavailable, trying object storage:", (awsError as Error).message);
         try {
           const objectStorageService = new ObjectStorageService();
           const uploadURL = await objectStorageService.getObjectEntityUploadURL();
           res.json({ uploadURL, objectPath: uploadURL, method: 'PUT' });
         } catch (objError) {
-          console.log("Object storage unavailable, using local storage:", objError.message);
+          console.log("Object storage unavailable, using local storage:", (objError as Error).message);
           // For local storage, we'll use a POST endpoint instead
           res.json({ 
             uploadURL: '/api/objects/upload-local',
@@ -851,6 +851,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const localStorageService = new LocalStorageService();
       const fileBuffer = await readFile(req.file.path);
       const { objectPath, publicURL } = await localStorageService.saveFile(fileBuffer, req.file.mimetype);
+
+      // Clean up temp file
+      try {
+        await require('fs/promises').unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn('Failed to cleanup temp file:', unlinkError);
+      }
 
       res.json({
         uploadURL: publicURL,
