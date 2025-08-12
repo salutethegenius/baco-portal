@@ -15,6 +15,7 @@ import Admin from "@/pages/admin";
 import Checkout from "@/pages/checkout";
 import EventDetail from "@/pages/event-detail";
 import PublicEvent from "@/pages/public-event";
+import BacoConference2025 from "@/pages/baco-conference-2025";
 import MemberRegistration from "@/pages/member-registration";
 import EventRegistration from "@/pages/event-registration";
 
@@ -36,6 +37,7 @@ function Router() {
     <Switch>
       {/* Public routes (no auth required) */}
       <Route path="/events/:slug" component={PublicEvent} />
+      <Route path="/baco-conference-2025" component={BacoConference2025} />
       <Route path="/member-registration" component={MemberRegistration} />
 
       {/* Authentication route */}

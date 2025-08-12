@@ -61,6 +61,12 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        "baco-primary": "var(--baco-primary)",
+        "baco-secondary": "var(--baco-secondary)",
+        "baco-neutral": "var(--baco-neutral)",
+        "gold-500": "var(--gold-500)",
+        "gold-600": "var(--gold-600)",
+        "gold-300": "var(--gold-300)",
       },
       keyframes: {
         "accordion-down": {

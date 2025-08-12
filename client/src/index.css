@@ -25,13 +25,12 @@
   --radius: 0.5rem;
 
   /* BACO Brand Colors */
-  --baco-primary: hsl(207, 90%, 54%);
-  --baco-secondary: hsl(207, 100%, 37%);
-  --baco-accent: hsl(39, 100%, 50%);
-  --baco-success: hsl(122, 39%, 49%);
-  --baco-error: hsl(0, 68%, 42%);
-  --baco-neutral: hsl(0, 0%, 98%);
-  --baco-neutral-dark: hsl(0, 0%, 96%);
+  --baco-primary: #1e40af;
+  --baco-secondary: #1e3a8a;
+  --baco-neutral: #f8fafc;
+  --gold-500: #f59e0b;
+  --gold-600: #d97706;
+  --gold-300: #fcd34d;
 }
 
 .dark {
@@ -164,4 +163,104 @@
   .bg-baco-success\/20 {
     background-color: hsl(122 39% 49% / 0.2);
   }
+
+  /* Gold Theme Classes */
+  .bg-gold-500 {
+    background-color: var(--gold-500);
+  }
+  .text-gold-500 {
+    color: var(--gold-500);
+  }
+  .hover\:bg-gold-500:hover {
+    background-color: var(--gold-500);
+  }
+  .border-gold-500 {
+    border-color: var(--gold-500);
+  }
+
+  .bg-gold-600 {
+    background-color: var(--gold-600);
+  }
+  .text-gold-600 {
+    color: var(--gold-600);
+  }
+  .hover\:bg-gold-600:hover {
+    background-color: var(--gold-600);
+  }
+  .border-gold-600 {
+    border-color: var(--gold-600);
+  }
+
+  .bg-gold-300 {
+    background-color: var(--gold-300);
+  }
+  .text-gold-300 {
+    color: var(--gold-300);
+  }
+  .hover\:bg-gold-300:hover {
+    background-color: var(--gold-300);
+  }
+  .border-gold-300 {
+    border-color: var(--gold-300);
+  }
+}
+
+/* Landing Page Component */
+.baco-conference-landing {
+  background-image: url('/bacu_event.jpg'); /* Assuming bacu_event.jpg is in the public folder */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.section {
+  @apply py-12 px-4 md:px-8 lg:px-16;
+}
+
+.container {
+  @apply max-w-6xl mx-auto;
+}
+
+.hero-title {
+  @apply text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4;
+}
+
+.hero-subtitle {
+  @apply text-xl md:text-2xl lg:text-3xl text-gold-300 mb-8;
+}
+
+.event-details-card {
+  @apply bg-white bg-opacity-80 backdrop-blur-sm rounded-lg shadow-lg p-6;
+}
+
+.event-details-item {
+  @apply flex items-center mb-4 text-gray-700;
+}
+
+.event-details-icon {
+  @apply mr-3 text-baco-primary text-xl;
+}
+
+.section-title {
+  @apply text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800;
+}
+
+.feature-card {
+  @apply bg-baco-neutral rounded-lg shadow-md p-6 text-center;
+}
+
+.feature-icon {
+  @apply text-baco-primary text-4xl mb-4;
+}
+
+.cta-button {
+  @apply inline-block bg-gold-500 hover:bg-gold-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out text-lg;
+}
+
+.footer {
+  @apply bg-baco-secondary text-white text-center py-6;
+}
+
+.footer-text {
+  @apply text-sm;
 }
