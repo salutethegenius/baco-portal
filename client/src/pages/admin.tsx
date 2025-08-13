@@ -322,6 +322,45 @@ export default function Admin() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/detailed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({
+        title: "Success",
+        description: "Member deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${userName}" from the member list? This action cannot be undone and will remove all their data including registrations, documents, messages, and payments.`)) {
+      deleteUserMutation.mutate(userId);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -566,6 +605,17 @@ export default function Admin() {
                                   data-testid={`button-remove-admin-${member.id}`}
                                 >
                                   Remove Admin
+                                </Button>
+                              )}
+                              {member.id !== (user as any)?.id && (
+                                <Button
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(member.id, `${member.firstName} ${member.lastName}`)}
+                                  disabled={deleteUserMutation.isPending}
+                                  data-testid={`button-delete-member-${member.id}`}
+                                >
+                                  Delete Member
                                 </Button>
                               )}
                             </div>

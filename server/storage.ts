@@ -33,6 +33,7 @@ export interface IStorage {
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User>;
   updateUserMembershipStatus(userId: string, status: string, nextPaymentDate?: Date): Promise<User>;
   updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
 
   // Event operations
   getEvents(): Promise<Event[]>;
@@ -136,6 +137,54 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updatedUser;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      // Check if user has any dependencies that would prevent deletion
+      const userEventRegistrations = await db
+        .select()
+        .from(eventRegistrations)
+        .where(eq(eventRegistrations.userId, userId));
+
+      const userDocuments = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.userId, userId));
+
+      const userMessages = await db
+        .select()
+        .from(messages)
+        .where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
+
+      const userPayments = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.userId, userId));
+
+      // Delete all related data first
+      if (userEventRegistrations.length > 0) {
+        await db.delete(eventRegistrations).where(eq(eventRegistrations.userId, userId));
+      }
+
+      if (userDocuments.length > 0) {
+        await db.delete(documents).where(eq(documents.userId, userId));
+      }
+
+      if (userMessages.length > 0) {
+        await db.delete(messages).where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
+      }
+
+      if (userPayments.length > 0) {
+        await db.delete(payments).where(eq(payments.userId, userId));
+      }
+
+      // Finally delete the user
+      await db.delete(users).where(eq(users.id, userId));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {
