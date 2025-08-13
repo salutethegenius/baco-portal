@@ -320,14 +320,60 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
               {formData.paymentMethod === "cheque" && (
                 <Card className="bg-green-50 border-green-200">
                   <CardContent className="pt-4">
-                    <h4 className="font-semibold text-green-900 mb-2">Cheque Payment Instructions</h4>
-                    <div className="text-sm space-y-2 text-green-800">
-                      <div><strong>Make cheque payable to:</strong> {BANK_TRANSFER_INFO.name}</div>
-                      <div><strong>Amount:</strong> ${selectedOption.price} BSD</div>
-                      <div><strong>Mail to:</strong> {BANK_TRANSFER_INFO.address}</div>
+                    <h4 className="font-semibold text-green-900 mb-3">Cheque Payment Details</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-green-900 font-medium">Registration Duration</Label>
+                        <RadioGroup
+                          data-testid="radiogroup-chequeDays"
+                          value={formData.registrationType.includes('one_day') ? 'one_day' : 'two_day'}
+                          onValueChange={(value) => {
+                            const membershipType = formData.registrationType.includes('member') && !formData.registrationType.includes('non_member') ? 'member' : 'non_member';
+                            setFormData({ ...formData, registrationType: `${membershipType}_${value}` });
+                          }}
+                          className="mt-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="one_day" id="cheque_one_day" />
+                            <Label htmlFor="cheque_one_day" className="text-green-800">1 Day Registration</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="two_day" id="cheque_two_day" />
+                            <Label htmlFor="cheque_two_day" className="text-green-800">2 Day Registration</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-green-900 font-medium">Membership Status</Label>
+                        <RadioGroup
+                          data-testid="radiogroup-chequeMembership"
+                          value={formData.registrationType.includes('member') && !formData.registrationType.includes('non_member') ? 'member' : 'non_member'}
+                          onValueChange={(value) => {
+                            const duration = formData.registrationType.includes('one_day') ? 'one_day' : 'two_day';
+                            setFormData({ ...formData, registrationType: `${value}_${duration}` });
+                          }}
+                          className="mt-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="member" id="cheque_member" />
+                            <Label htmlFor="cheque_member" className="text-green-800">BACO Member</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="non_member" id="cheque_non_member" />
+                            <Label htmlFor="cheque_non_member" className="text-green-800">Non-Member</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
                     </div>
-                    <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-900">
-                      <strong>Note:</strong> Please write your name and "Event Registration - {event.title}" in the memo line. Your registration will be confirmed once the cheque is received and processed.
+                    
+                    <div className="mt-4 p-3 bg-green-100 rounded text-sm text-green-900">
+                      <div className="space-y-1">
+                        <p><strong>Make cheque payable to:</strong> {BANK_TRANSFER_INFO.name}</p>
+                        <p><strong>Mail to:</strong> {BANK_TRANSFER_INFO.address}</p>
+                        <p><strong>Amount:</strong> ${selectedOption.price} BSD</p>
+                        <p className="text-xs mt-2"><strong>Note:</strong> Please write your name and "Event Registration - {event.title}" on the memo line.</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
