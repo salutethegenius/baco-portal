@@ -17,13 +17,23 @@ export default function Landing() {
                 <p className="text-sm text-gray-600">Bahamas Association of Compliance Officers</p>
               </div>
             </div>
-            <Button 
-              onClick={() => window.location.href = "/auth"}
-              className="bg-baco-primary hover:bg-baco-secondary"
-              data-testid="button-login"
-            >
-              Sign In
-            </Button>
+            <div className="space-x-2">
+              <Button 
+                onClick={() => window.location.href = "/member-registration"}
+                variant="outline"
+                className="border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white"
+                data-testid="button-apply"
+              >
+                Apply
+              </Button>
+              <Button 
+                onClick={() => window.location.href = "/auth"}
+                className="bg-baco-primary hover:bg-baco-secondary"
+                data-testid="button-login"
+              >
+                Sign In
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -44,19 +54,20 @@ export default function Landing() {
               <div className="space-x-4">
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = "/auth"}
+                  onClick={() => window.location.href = "/member-registration"}
                   className="bg-baco-primary hover:bg-baco-secondary px-8 py-3"
                   data-testid="button-get-started"
                 >
-                  Get Started
+                  Apply for Membership
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline"
+                  onClick={() => window.location.href = "/auth"}
                   className="border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white px-8 py-3"
-                  data-testid="button-learn-more"
+                  data-testid="button-existing-member"
                 >
-                  Learn More
+                  Existing Member Sign In
                 </Button>
               </div>
             </div>
@@ -163,14 +174,25 @@ export default function Landing() {
               <p className="text-lg mb-8 opacity-90">
                 Become part of the leading compliance community in the Bahamas and advance your career.
               </p>
-              <Button 
-                size="lg"
-                onClick={() => window.location.href = "/auth"}
-                className="bg-white text-baco-primary hover:bg-gray-100 px-8 py-3"
-                data-testid="button-join-now"
-              >
-                Join Now
-              </Button>
+              <div className="space-x-4">
+                <Button 
+                  size="lg"
+                  onClick={() => window.location.href = "/member-registration"}
+                  className="bg-white text-baco-primary hover:bg-gray-100 px-8 py-3"
+                  data-testid="button-join-now"
+                >
+                  Apply for Membership
+                </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  onClick={() => window.location.href = "/auth"}
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-baco-primary px-8 py-3"
+                  data-testid="button-member-signin"
+                >
+                  Member Sign In
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

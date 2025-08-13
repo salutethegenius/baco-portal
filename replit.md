@@ -15,6 +15,9 @@ The application serves as a complete membership management system with features 
 - **Fixed Database Schema Issues**: Corrected timestamp field handling in Drizzle ORM
 - **Validation Improvements**: Enhanced email format validation and duplicate registration checking
 - **Payment Status Logic**: Proper payment status handling for all three payment methods
+- **Fixed Landing Page Registration Flow**: Resolved "already registered" error by properly directing new users to member registration instead of simple auth page
+- **Added Member Deletion**: Complete admin member deletion functionality with cascade deletion of all related data (events, documents, messages, payments)
+- **Enhanced Landing Page UX**: Clear distinction between "Apply for Membership" (new users) and "Member Sign In" (existing users)
 
 ### Public Event Pages with SEO-Friendly Slugs (August 11, 2025)
 - **Public Event URLs**: SEO-friendly public event pages at `/events/{slug}` (e.g., `/events/baco-annual-conference-2025`)
