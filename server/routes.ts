@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/event-registrations", async (req, res) => {
     try {
       console.log('Event registration request received:', req.body);
-      const { eventId, fullName, email, position, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
+      const { eventId, fullName, email, companyName, position, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
 
       // Validate required fields
       if (!eventId || !fullName || !email) {
@@ -304,6 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        companyName: companyName?.trim(),
         position: position?.trim(),
         phoneNumber: phone?.trim(),
         notes: notes?.trim(),

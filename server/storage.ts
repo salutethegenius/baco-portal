@@ -21,6 +21,7 @@ import {
 import { db } from "./db";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
 import { generateSlug, ensureUniqueSlug } from "@shared/utils";
+import crypto from "crypto";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -264,11 +265,41 @@ export class DatabaseStorage implements IStorage {
     return registration;
   }
 
-  async createEventRegistration(data: InsertEventRegistration): Promise<EventRegistration> {
+  async createEventRegistration(data: {
+    eventId: string;
+    userId?: string | null;
+    firstName: string;
+    lastName: string;
+    email: string;
+    companyName?: string;
+    position?: string;
+    phoneNumber?: string;
+    notes?: string;
+    registrationType?: string | null;
+    paymentMethod?: string;
+    paymentAmount?: string;
+    paymentStatus?: string;
+  }): Promise<EventRegistration> {
     // Create the registration
     const [registration] = await db
       .insert(eventRegistrations)
-      .values(data)
+      .values({
+        id: crypto.randomUUID(),
+        eventId: data.eventId,
+        userId: data.userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        companyName: data.companyName,
+        position: data.position,
+        phoneNumber: data.phoneNumber,
+        notes: data.notes,
+        registrationType: data.registrationType,
+        paymentMethod: data.paymentMethod || "paylanes",
+        paymentAmount: data.paymentAmount || "0.00",
+        paymentStatus: data.paymentStatus || "pending",
+        registrationDate: new Date().toISOString(),
+      })
       .returning();
 
     // Update event's current attendee count

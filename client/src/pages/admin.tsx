@@ -922,6 +922,7 @@ export default function Admin() {
                                 <TableRow>
                                   <TableHead>Name</TableHead>
                                   <TableHead>Email</TableHead>
+                                  <TableHead>Company</TableHead>
                                   <TableHead>Position</TableHead>
                                   <TableHead>Phone</TableHead>
                                   <TableHead>Registration Type</TableHead>
@@ -937,6 +938,7 @@ export default function Admin() {
                                       {registration.firstName} {registration.lastName}
                                     </TableCell>
                                     <TableCell>{registration.email}</TableCell>
+                                    <TableCell>{registration.companyName || 'N/A'}</TableCell>
                                     <TableCell>{registration.position || 'N/A'}</TableCell>
                                     <TableCell>{registration.phoneNumber || 'N/A'}</TableCell>
                                     <TableCell className="capitalize">
