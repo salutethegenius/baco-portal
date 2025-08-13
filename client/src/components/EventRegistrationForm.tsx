@@ -98,6 +98,9 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         // Redirect to Paylanes
         const paymentUrl = `${selectedOption.paylanesUrl}?amount=${selectedOption.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${selectedOption.title}`;
         window.location.href = paymentUrl;
+      } else if (formData.paymentMethod === "cheque") {
+        // Cheque payment - show success message
+        return { chequePayment: true };
       } else {
         // Bank transfer - show success message with bank details
         return { bankTransfer: true };
@@ -108,6 +111,13 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         toast({
           title: "Registration Successful!",
           description: "Please complete payment via bank transfer using the details provided.",
+          duration: 5000,
+        });
+        onSuccess();
+      } else if (result?.chequePayment) {
+        toast({
+          title: "Registration Successful!",
+          description: "Please send your cheque payment to BACO. You will receive confirmation once payment is received.",
           duration: 5000,
         });
         onSuccess();
@@ -274,6 +284,12 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                     Direct Bank Transfer
                   </Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="cheque" id="cheque" />
+                  <Label htmlFor="cheque" className="cursor-pointer">
+                    Cheque Payment
+                  </Label>
+                </div>
               </RadioGroup>
 
               {formData.paymentMethod === "bank_transfer" && (
@@ -295,6 +311,22 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                   </CardContent>
                 </Card>
               )}
+
+              {formData.paymentMethod === "cheque" && (
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="pt-4">
+                    <h4 className="font-semibold text-green-900 mb-2">Cheque Payment Instructions</h4>
+                    <div className="text-sm space-y-2 text-green-800">
+                      <div><strong>Make cheque payable to:</strong> {BANK_TRANSFER_INFO.name}</div>
+                      <div><strong>Amount:</strong> ${selectedOption.price} BSD</div>
+                      <div><strong>Mail to:</strong> {BANK_TRANSFER_INFO.address}</div>
+                    </div>
+                    <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-900">
+                      <strong>Note:</strong> Please write your name and "Event Registration - {event.title}" in the memo line. Your registration will be confirmed once the cheque is received and processed.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <Separator />
@@ -309,7 +341,14 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Method:</span>
-                  <span>{formData.paymentMethod === "paylanes" ? "Online Payment" : "Bank Transfer"}</span>
+                  <span>
+                    {formData.paymentMethod === "paylanes" 
+                      ? "Online Payment" 
+                      : formData.paymentMethod === "cheque" 
+                      ? "Cheque Payment" 
+                      : "Bank Transfer"
+                    }
+                  </span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                   <span>Total Amount:</span>
@@ -341,6 +380,8 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                   </>
                 ) : formData.paymentMethod === "paylanes" ? (
                   `Pay $${selectedOption.price} Online`
+                ) : formData.paymentMethod === "cheque" ? (
+                  `Register & Submit`
                 ) : (
                   `Register & Get Bank Details`
                 )}

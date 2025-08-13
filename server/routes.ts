@@ -311,8 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registrationType: registrationType || null,
         paymentMethod: paymentMethod || "paylanes",
         paymentAmount: paymentAmount || event.price?.toString() || "0.00",
-        paymentStatus: parseFloat(paymentAmount || "0") > 0 ? "pending" : "paid",
-        registrationDate: new Date().toISOString(),
+        paymentStatus: paymentMethod === "cheque" ? "pending" : (parseFloat(paymentAmount || "0") > 0 ? "pending" : "paid"),
       });
 
       // Handle redirects based on payment method

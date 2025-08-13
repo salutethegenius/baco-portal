@@ -304,7 +304,6 @@ export class DatabaseStorage implements IStorage {
         paymentMethod: data.paymentMethod || "paylanes",
         paymentAmount: data.paymentAmount || "0.00",
         paymentStatus: data.paymentStatus || "pending",
-        registrationDate: new Date().toISOString(),
       })
       .returning();
 
