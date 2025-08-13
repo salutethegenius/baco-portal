@@ -58,6 +58,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
     firstName: "",
     lastName: "",
     email: "",
+    companyName: "",
     position: "",
     phoneNumber: "",
     notes: "",
@@ -79,6 +80,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         eventId: event.id,
         fullName,
         email: formData.email,
+        companyName: formData.companyName,
         position: formData.position,
         phone: formData.phoneNumber,
         notes: formData.notes,
@@ -190,6 +192,15 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
+                />
+              </div>
+              <div>
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  placeholder="Your company or organization"
                 />
               </div>
               <div>
