@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.deleteEvent(req.params.id);
       res.json({ message: "Event deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting event:", error);
 
       if (error.message && error.message.includes('existing registrations')) {
@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Event found:', { id: event.id, title: event.title, currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
 
       // Check if event is full
-      if (event.maxAttendees && event.currentAttendees >= event.maxAttendees) {
+      if (event.maxAttendees && (event.currentAttendees || 0) >= event.maxAttendees) {
         console.log('Event is full:', { currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
         return res.status(400).json({ message: "Event is full" });
       }
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Registration created successfully:', registration.id);
       res.status(201).json({ ...registration, redirectUrl });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating event registration:", error);
       res.status(500).json({ message: "Failed to create event registration: " + error.message });
     }
@@ -358,7 +358,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileSize: 0,
         objectPath: '', // No file path needed
         category: category || 'general',
-        description,
       });
 
       res.json(document);

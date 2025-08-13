@@ -6,6 +6,16 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### Event Registration System Debugging & Enhancement (August 13, 2025)
+- **Fixed Critical Timestamp Bug**: Resolved `value.toISOString is not a function` error in event registration system
+- **Added Cheque Payment Option**: Complete cheque payment workflow with detailed instructions for users
+- **Enhanced Payment Methods**: Now supports three payment options (Paylanes, Bank Transfer, Cheque)
+- **Improved Error Handling**: Added proper TypeScript error typing and robust validation
+- **Enhanced Test Coverage**: Added comprehensive data-testid attributes for form testing
+- **Fixed Database Schema Issues**: Corrected timestamp field handling in Drizzle ORM
+- **Validation Improvements**: Enhanced email format validation and duplicate registration checking
+- **Payment Status Logic**: Proper payment status handling for all three payment methods
+
 ### Public Event Pages with SEO-Friendly Slugs (August 11, 2025)
 - **Public Event URLs**: SEO-friendly public event pages at `/events/{slug}` (e.g., `/events/baco-annual-conference-2025`)
 - **No Authentication Required**: Public can view events and register without BACO membership or login

@@ -290,13 +290,11 @@ export class DatabaseStorage implements IStorage {
     const [registration] = await db
       .insert(eventRegistrations)
       .values({
-        id: crypto.randomUUID(),
         eventId: data.eventId,
         userId: data.userId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        companyName: data.companyName,
         position: data.position,
         phoneNumber: data.phoneNumber,
         notes: data.notes,

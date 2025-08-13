@@ -179,6 +179,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                   <Label htmlFor="firstName">First Name *</Label>
                   <Input
                     id="firstName"
+                    data-testid="input-firstName"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
@@ -188,6 +189,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                   <Label htmlFor="lastName">Last Name *</Label>
                   <Input
                     id="lastName"
+                    data-testid="input-lastName"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
@@ -199,6 +201,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                 <Input
                   id="email"
                   type="email"
+                  data-testid="input-email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -246,6 +249,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
             <div className="space-y-4">
               <h3 className="font-semibold">Registration Type</h3>
               <RadioGroup
+                data-testid="radiogroup-registrationType"
                 value={formData.registrationType}
                 onValueChange={(value) => setFormData({ ...formData, registrationType: value })}
               >
@@ -269,6 +273,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
             <div className="space-y-4">
               <h3 className="font-semibold">Payment Method</h3>
               <RadioGroup
+                data-testid="radiogroup-paymentMethod"
                 value={formData.paymentMethod}
                 onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
               >
@@ -365,6 +370,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                 onClick={onClose}
                 className="flex-1"
                 disabled={isSubmitting}
+                data-testid="button-cancel"
               >
                 Cancel
               </Button>
@@ -372,6 +378,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
                 type="submit"
                 className="flex-1 bg-baco-primary hover:bg-baco-secondary"
                 disabled={isSubmitting}
+                data-testid="button-submit"
               >
                 {isSubmitting ? (
                   <>
