@@ -39,6 +39,7 @@ export interface IStorage {
   getEvent(id: string): Promise<Event | undefined>;
   getEventBySlug(slug: string): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
+  createEventWithId(eventData: any): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
 
@@ -184,6 +185,11 @@ export class DatabaseStorage implements IStorage {
       ...event,
       slug: uniqueSlug,
     }).returning();
+    return newEvent;
+  }
+
+  async createEventWithId(eventData: any): Promise<Event> {
+    const [newEvent] = await db.insert(events).values(eventData).returning();
     return newEvent;
   }
 

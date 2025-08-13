@@ -1138,6 +1138,33 @@ export default function Admin() {
                         <i className="fas fa-qrcode mr-2 text-xs"></i>
                         Generate QR Code
                       </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/seed-baco-conference-2025', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                            });
+                            const result = await response.json();
+                            if (response.ok) {
+                              alert('BACO Conference 2025 event seeded successfully!');
+                              window.location.reload();
+                            } else {
+                              alert(`Error: ${result.message}`);
+                            }
+                          } catch (error) {
+                            console.error('Error seeding event:', error);
+                            alert('Failed to seed event');
+                          }
+                        }}
+                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                      >
+                        <i className="fas fa-database mr-2 text-xs"></i>
+                        Seed Event in Database
+                      </Button>
 
                       <Button
                         variant="outline"

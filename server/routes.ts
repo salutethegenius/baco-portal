@@ -711,6 +711,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to create/seed the BACO Conference 2025 event
+  app.post('/api/seed-baco-conference-2025', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Check if event already exists
+      const existingEvent = await storage.getEvent("baco-conference-2025");
+      if (existingEvent) {
+        return res.json({ message: "BACO Conference 2025 event already exists", event: existingEvent });
+      }
+
+      const eventData = {
+        id: "baco-conference-2025",
+        title: "BACO Conference 2025 – Celebrating 25 Years of Compliance",
+        slug: "baco-conference-2025",
+        description: "Rooted in Integrity, Growing with Purpose",
+        startDate: new Date("2025-11-13T08:00:00"),
+        endDate: new Date("2025-11-14T17:00:00"),
+        location: "Bahamar Convention Center, Nassau, Bahamas",
+        price: "350.00",
+        maxAttendees: 500,
+        currentAttendees: 0,
+        status: "upcoming",
+        isPublic: true,
+        createdBy: userId,
+      };
+
+      const event = await storage.createEventWithId(eventData);
+      res.json({ message: "BACO Conference 2025 event created successfully", event });
+    } catch (error) {
+      console.error("Error creating BACO Conference 2025 event:", error);
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
   // QR Code generation endpoint
   app.post("/api/generate-qr-code", isAuthenticated, async (req: any, res) => {
     try {
