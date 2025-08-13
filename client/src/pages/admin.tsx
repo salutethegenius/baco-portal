@@ -1150,14 +1150,25 @@ export default function Admin() {
                             });
                             const result = await response.json();
                             if (response.ok) {
-                              alert('BACO Conference 2025 event seeded successfully!');
-                              window.location.reload();
+                              toast({
+                                title: "Success",
+                                description: "BACO Conference 2025 event seeded successfully!",
+                              });
+                              queryClient.invalidateQueries({ queryKey: ["/api/events"] });
                             } else {
-                              alert(`Error: ${result.message}`);
+                              toast({
+                                title: "Error",
+                                description: result.message,
+                                variant: "destructive",
+                              });
                             }
                           } catch (error) {
                             console.error('Error seeding event:', error);
-                            alert('Failed to seed event');
+                            toast({
+                              title: "Error",
+                              description: "Failed to seed event",
+                              variant: "destructive",
+                            });
                           }
                         }}
                         className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
