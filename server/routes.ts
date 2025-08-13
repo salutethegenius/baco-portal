@@ -13,16 +13,16 @@ const apiEventSchema = z.object({
   startDate: z.string().transform(str => new Date(str)),
   endDate: z.string().transform(str => new Date(str)),
   location: z.string().optional(),
-  price: z.union([z.string(), z.number()]).transform(val => 
+  price: z.union([z.string(), z.number()]).transform(val =>
     typeof val === 'string' ? val : val.toString()
   ),
-  memberPrice: z.union([z.string(), z.number()]).optional().transform(val => 
+  memberPrice: z.union([z.string(), z.number()]).optional().transform(val =>
     val ? (typeof val === 'string' ? val : val.toString()) : undefined
   ),
-  nonMemberPrice: z.union([z.string(), z.number()]).optional().transform(val => 
+  nonMemberPrice: z.union([z.string(), z.number()]).optional().transform(val =>
     val ? (typeof val === 'string' ? val : val.toString()) : undefined
   ),
-  maxAttendees: z.union([z.string(), z.number()]).transform(val => 
+  maxAttendees: z.union([z.string(), z.number()]).transform(val =>
     typeof val === 'string' ? parseInt(val) : val
   ),
   status: z.string().optional().default("upcoming"),
@@ -163,15 +163,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error.name === 'ZodError') {
         console.error("❌ Validation errors:", error.errors);
-        return res.status(400).json({ 
-          message: "Validation error", 
+        return res.status(400).json({
+          message: "Validation error",
           errors: error.errors,
           receivedData: req.body
         });
       }
 
-      res.status(500).json({ 
-        message: "Failed to create event", 
+      res.status(500).json({
+        message: "Failed to create event",
         error: error?.message || 'Unknown error',
         details: error?.stack
       });
@@ -312,12 +312,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: paymentMethod || "paylanes",
         paymentAmount: paymentAmount || event.price?.toString() || "0.00",
         paymentStatus: parseFloat(paymentAmount || "0") > 0 ? "pending" : "paid",
+        registrationDate: new Date().toISOString(),
       });
 
-      // Note: currentAttendees is calculated dynamically
+      // Handle redirects based on payment method
+      let redirectUrl = null;
+      if (paymentMethod === "paylanes") {
+        // Assuming Paylanes has a specific URL structure or API endpoint
+        // This is a placeholder and needs to be replaced with the actual Paylanes integration
+        redirectUrl = `https://paylanes.com/pay?amount=${registration.paymentAmount}&reference=${registration.id}`;
+      } else if (paymentMethod === "stripe") {
+        // Placeholder for Stripe integration
+        // redirectUrl = `/stripe-checkout/${registration.id}`;
+      }
 
       console.log('Registration created successfully:', registration.id);
-      res.status(201).json(registration);
+      res.status(201).json({ ...registration, redirectUrl });
     } catch (error) {
       console.error("Error creating event registration:", error);
       res.status(500).json({ message: "Failed to create event registration: " + error.message });
@@ -528,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(503).json({ message: "Subscription processing temporarily unavailable - Stripe keys needed" });
   });
 
-  
+
 
   // Admin: Get event registrations
   app.get('/api/admin/events/:eventId/registrations', isAuthenticated, async (req: any, res) => {
@@ -627,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Determine membership fee based on type
       const membershipFees = {
         academic: "100.00",
-        associate: "200.00", 
+        associate: "200.00",
         professional: "250.00",
         bccp: "300.00"
       };
@@ -784,7 +794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  
+
 
 
   const httpServer = createServer(app);
