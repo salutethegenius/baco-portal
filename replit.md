@@ -6,6 +6,13 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### CSV Export for Event Registrations (October 7, 2025)
+- **Registration Export**: Admin can now export event registrations to CSV format
+- **Proper CSV Formatting**: All fields properly quoted and escaped to handle commas, quotes, and special characters
+- **ISO Date Format**: Registration dates exported in ISO 8601 format for consistency
+- **Easy Access**: Export CSV button available in the View Registrations dialog for each event
+- **Automatic Filename**: CSV files automatically named with event title and export date
+
 ### Event Registration System Debugging & Enhancement (August 13, 2025)
 - **Fixed Critical Timestamp Bug**: Resolved `value.toISOString is not a function` error in event registration system
 - **Added Cheque Payment Option**: Complete cheque payment workflow with detailed instructions for users
