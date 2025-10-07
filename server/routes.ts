@@ -556,6 +556,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Export event registrations as CSV
+  app.get('/api/admin/events/:eventId/registrations/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const registrations = await storage.getEventRegistrations(req.params.eventId);
+      const event = await storage.getEvent(req.params.eventId);
+
+      // Helper function to escape CSV field
+      const escapeCSVField = (field: any): string => {
+        if (field === null || field === undefined) return '""';
+        const str = String(field);
+        // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return `"${str}"`;
+      };
+
+      // CSV headers
+      const headers = [
+        'First Name',
+        'Last Name',
+        'Email',
+        'Position',
+        'Phone Number',
+        'Registration Type',
+        'Payment Method',
+        'Payment Status',
+        'Payment Amount',
+        'Registration Date',
+        'Notes'
+      ];
+
+      // Convert registrations to CSV rows
+      const csvRows = registrations.map(reg => [
+        escapeCSVField(reg.firstName || ''),
+        escapeCSVField(reg.lastName || ''),
+        escapeCSVField(reg.email || ''),
+        escapeCSVField(reg.position || ''),
+        escapeCSVField(reg.phoneNumber || ''),
+        escapeCSVField(reg.registrationType || ''),
+        escapeCSVField(reg.paymentMethod || ''),
+        escapeCSVField(reg.paymentStatus || ''),
+        escapeCSVField(reg.paymentAmount || ''),
+        escapeCSVField(reg.registrationDate ? new Date(reg.registrationDate).toISOString() : ''),
+        escapeCSVField(reg.notes || '')
+      ]);
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.map(h => escapeCSVField(h)).join(','),
+        ...csvRows.map(row => row.join(','))
+      ].join('\n');
+
+      // Set headers for file download
+      const filename = `${event?.title.replace(/[^a-z0-9]/gi, '_')}_registrations_${new Date().toISOString().split('T')[0]}.csv`;
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error exporting event registrations:", error);
+      res.status(500).json({ message: "Failed to export event registrations" });
+    }
+  });
+
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {

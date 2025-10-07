@@ -1019,13 +1019,28 @@ export default function Admin() {
                             <p className="text-gray-500">This event doesn't have any registrations.</p>
                           </div>
                         )}
-                        <div className="flex justify-end pt-4 border-t">
+                        <div className="flex justify-between pt-4 border-t">
+                          <Button
+                            variant="default"
+                            onClick={() => {
+                              const eventId = selectedEventForRegistrations?.id;
+                              if (eventId) {
+                                window.location.href = `/api/admin/events/${eventId}/registrations/export`;
+                              }
+                            }}
+                            disabled={eventRegistrations.length === 0}
+                            data-testid="button-export-csv"
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            Export CSV
+                          </Button>
                           <Button
                             variant="outline"
                             onClick={() => {
                               setViewRegistrationsDialogOpen(false);
                               setSelectedEventForRegistrations(null);
                             }}
+                            data-testid="button-close-registrations"
                           >
                             Close
                           </Button>
