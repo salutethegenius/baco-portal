@@ -6,6 +6,13 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### Returning Member Event Registration Fix (October 9, 2025)
+- **Duplicate Registration Handling**: When returning members try to register again with existing email, system now shows "Already Registered!" instead of error
+- **Smart Payment Redirect**: Automatically redirects to correct Paylanes payment link based on their original registration tier
+- **Multi-Payment Support**: Handles Paylanes (redirect), Cheque (instructions), and Bank Transfer (instructions) methods
+- **Better UX**: Clear toast messages inform users of their registration status and next steps
+- **No More Confusion**: Returning members can simply re-enter their email to access payment options
+
 ### CSV Export for Event Registrations (October 7, 2025)
 - **Registration Export**: Admin can now export event registrations to CSV format
 - **Proper CSV Formatting**: All fields properly quoted and escaped to handle commas, quotes, and special characters
