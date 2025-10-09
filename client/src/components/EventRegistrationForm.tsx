@@ -76,7 +76,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
       const selectedOption = PAYMENT_OPTIONS[formData.registrationType as keyof typeof PAYMENT_OPTIONS];
 
       // Create registration record
-      const registration = await apiRequest("POST", "/api/event-registrations", {
+      const response = await apiRequest("POST", "/api/event-registrations", {
         eventId: event.id,
         fullName,
         email: formData.email,
@@ -89,11 +89,55 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         paymentAmount: selectedOption.price.toString()
       });
 
-      if (!registration.ok) {
+      if (!response.ok) {
         throw new Error("Failed to create registration");
       }
 
-      // Handle payment method
+      const registration = await response.json();
+
+      // Check if user is already registered
+      if (registration.alreadyRegistered) {
+        // Get the payment option for their existing registration type
+        const existingOption = PAYMENT_OPTIONS[registration.registrationType as keyof typeof PAYMENT_OPTIONS];
+        
+        if (registration.paymentMethod === "paylanes") {
+          // Redirect to their Paylanes payment link
+          const paymentUrl = `${existingOption.paylanesUrl}?amount=${existingOption.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${existingOption.title}`;
+          
+          toast({
+            title: "Already Registered!",
+            description: `You're registered for ${existingOption.title}. Redirecting to payment...`,
+            duration: 3000,
+          });
+          
+          setTimeout(() => {
+            window.location.href = paymentUrl;
+          }, 1500);
+          
+          return { alreadyRegistered: true, paylanes: true };
+        } else if (registration.paymentMethod === "cheque") {
+          toast({
+            title: "Already Registered!",
+            description: `You're registered for ${existingOption.title}. Please send your cheque payment to BACO.`,
+            duration: 5000,
+          });
+          setIsSubmitting(false);
+          setTimeout(() => onSuccess(), 2000);
+          return { alreadyRegistered: true, chequePayment: true };
+        } else {
+          // Bank transfer
+          toast({
+            title: "Already Registered!",
+            description: `You're registered for ${existingOption.title}. Please complete payment via bank transfer.`,
+            duration: 5000,
+          });
+          setIsSubmitting(false);
+          setTimeout(() => onSuccess(), 2000);
+          return { alreadyRegistered: true, bankTransfer: true };
+        }
+      }
+
+      // Handle payment method for new registrations
       if (formData.paymentMethod === "paylanes") {
         // Redirect to Paylanes
         const paymentUrl = `${selectedOption.paylanesUrl}?amount=${selectedOption.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${selectedOption.title}`;
@@ -107,6 +151,13 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
       }
     },
     onSuccess: (result) => {
+      // For already registered users, the mutation function handles everything
+      if (result?.alreadyRegistered) {
+        // Toast and modal closure already handled in mutation function
+        return;
+      }
+      
+      // For new registrations
       if (result?.bankTransfer) {
         toast({
           title: "Registration Successful!",

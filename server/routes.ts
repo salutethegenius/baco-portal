@@ -286,14 +286,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existingRegistration = await storage.getUserEventRegistration(userId, eventId);
         if (existingRegistration) {
           console.log('User already registered:', { userId, eventId });
-          return res.status(400).json({ message: "You are already registered for this event" });
+          return res.status(200).json({ 
+            ...existingRegistration, 
+            alreadyRegistered: true,
+            message: "You're already registered for this event!"
+          });
         }
       } else {
         // Check for duplicate registration by email for non-authenticated users
         const existingRegistration = await storage.findEventRegistrationByEmail(eventId, email);
         if (existingRegistration) {
           console.log('Duplicate registration attempt by email:', { eventId, email });
-          return res.status(400).json({ message: "Email already registered for this event" });
+          return res.status(200).json({ 
+            ...existingRegistration, 
+            alreadyRegistered: true,
+            message: "You're already registered for this event!"
+          });
         }
       }
 
