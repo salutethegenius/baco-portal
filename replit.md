@@ -6,6 +6,16 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### Updated Event Pricing and Payment Links (October 30, 2025)
+- **Regular Pricing Active**: Early bird period ended, updated to regular rates:
+  - Member 1-day: $500 (was $400)
+  - Member 2-day: $750 (was $650)
+  - Non-member 1-day: $600 (was $500)
+  - Non-member 2-day: $850 (was $750)
+- **New Paylanes Links**: Updated all four payment merchant links with pre-configured amounts
+- **Simplified Redirects**: Removed query parameters since Paylanes links are pre-configured
+- **Clean Code**: Removed debug logging, production-ready payment flow
+
 ### Returning Member Event Registration Fix (October 9, 2025)
 - **Duplicate Registration Handling**: When returning members try to register again with existing email, system now shows "Already Registered!" instead of error
 - **Smart Payment Redirect**: Automatically redirects to correct Paylanes payment link based on their original registration tier
