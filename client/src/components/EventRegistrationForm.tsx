@@ -21,22 +21,22 @@ const PAYMENT_OPTIONS = {
   member_one_day: {
     title: "One Day Member Early Bird Rate",
     price: 400,
-    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7"
+    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/sTGfrbzE"
   },
   member_two_day: {
     title: "Two Day Member Early Bird Rate",
     price: 650,
-    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/TvE9LbMv"
+    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/dHBWKtfg"
   },
   non_member_one_day: {
     title: "Non Member One Day Early Bird Rate",
     price: 500,
-    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/u2U2RNGA"
+    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/l4FRuBRw"
   },
   non_member_two_day: {
     title: "Non Member Two Day Early Bird Rate",
     price: 750,
-    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/ZtIvsYIp"
+    paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/pTPqTyUe"
   }
 };
 
@@ -102,7 +102,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         
         if (registration.paymentMethod === "paylanes") {
           // Redirect to their Paylanes payment link
-          const paymentUrl = `${existingOption.paylanesUrl}?amount=${existingOption.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${existingOption.title}`;
+          const paymentUrl = `${existingOption.paylanesUrl}?AMOUNT=${existingOption.price}&COMMENT=${encodeURIComponent(`Thank you for registering for ${event.title}!`)}`;
           
           toast({
             title: "Already Registered!",
@@ -140,7 +140,10 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
       // Handle payment method for new registrations
       if (formData.paymentMethod === "paylanes") {
         // Redirect to Paylanes
-        const paymentUrl = `${selectedOption.paylanesUrl}?amount=${selectedOption.price}&description=Event Registration: ${encodeURIComponent(event.title)} - ${selectedOption.title}`;
+        const paymentUrl = `${selectedOption.paylanesUrl}?AMOUNT=${selectedOption.price}&COMMENT=${encodeURIComponent(`Thank you for registering for ${event.title}!`)}`;
+        console.log("Redirecting to Paylanes with URL:", paymentUrl);
+        console.log("Selected option:", selectedOption);
+        console.log("Event title:", event.title);
         window.location.href = paymentUrl;
       } else if (formData.paymentMethod === "cheque") {
         // Cheque payment - show success message
