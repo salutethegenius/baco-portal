@@ -19,23 +19,23 @@ interface EventRegistrationFormProps {
 
 const PAYMENT_OPTIONS = {
   member_one_day: {
-    title: "One Day Member Early Bird Rate",
-    price: 400,
+    title: "One Day Member Rate",
+    price: 500,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/sTGfrbzE"
   },
   member_two_day: {
-    title: "Two Day Member Early Bird Rate",
-    price: 650,
+    title: "Two Day Member Rate",
+    price: 750,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/dHBWKtfg"
   },
   non_member_one_day: {
-    title: "Non Member One Day Early Bird Rate",
-    price: 500,
+    title: "Non Member One Day Rate",
+    price: 600,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/l4FRuBRw"
   },
   non_member_two_day: {
-    title: "Non Member Two Day Early Bird Rate",
-    price: 750,
+    title: "Non Member Two Day Rate",
+    price: 850,
     paylanesUrl: "https://paylanes.sprocket.solutions/merchant/paynow/pTPqTyUe"
   }
 };
@@ -101,9 +101,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
         const existingOption = PAYMENT_OPTIONS[registration.registrationType as keyof typeof PAYMENT_OPTIONS];
         
         if (registration.paymentMethod === "paylanes") {
-          // Redirect to their Paylanes payment link
-          const paymentUrl = `${existingOption.paylanesUrl}?AMOUNT=${existingOption.price}&COMMENT=${encodeURIComponent(`Thank you for registering for ${event.title}!`)}`;
-          
+          // Redirect to their Paylanes payment link (pre-configured with amount and description)
           toast({
             title: "Already Registered!",
             description: `You're registered for ${existingOption.title}. Redirecting to payment...`,
@@ -111,7 +109,7 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
           });
           
           setTimeout(() => {
-            window.location.href = paymentUrl;
+            window.location.href = existingOption.paylanesUrl;
           }, 1500);
           
           return { alreadyRegistered: true, paylanes: true };
@@ -139,12 +137,8 @@ export default function EventRegistrationForm({ event, onClose, onSuccess }: Eve
 
       // Handle payment method for new registrations
       if (formData.paymentMethod === "paylanes") {
-        // Redirect to Paylanes
-        const paymentUrl = `${selectedOption.paylanesUrl}?AMOUNT=${selectedOption.price}&COMMENT=${encodeURIComponent(`Thank you for registering for ${event.title}!`)}`;
-        console.log("Redirecting to Paylanes with URL:", paymentUrl);
-        console.log("Selected option:", selectedOption);
-        console.log("Event title:", event.title);
-        window.location.href = paymentUrl;
+        // Redirect to Paylanes (pre-configured with amount and description)
+        window.location.href = selectedOption.paylanesUrl;
       } else if (formData.paymentMethod === "cheque") {
         // Cheque payment - show success message
         return { chequePayment: true };
