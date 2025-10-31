@@ -99,15 +99,24 @@ export const eventRegistrations = pgTable("event_registrations", {
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   email: varchar("email").notNull(),
+  companyName: varchar("company_name"),
   position: varchar("position"),
   phoneNumber: varchar("phone_number"),
   notes: text("notes"),
   registrationType: varchar("registration_type"), // "member_two_day", "non_member_one_day", "non_member_two_day"
-  paymentMethod: varchar("payment_method"), // "paylanes", "bank_transfer"
+  paymentMethod: varchar("payment_method"), // "paylanes", "bank_transfer", "cheque"
   registrationDate: timestamp("registration_date").defaultNow(),
   paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
   paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }),
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  
+  // Admin management fields
+  membershipType: varchar("membership_type"), // "member", "non_member" - editable by admin
+  isPaid: boolean("is_paid").default(false), // Admin toggle for payment status
+  paymentMethodTracking: varchar("payment_method_tracking"), // Actual payment method used (Direct DP, Cash, etc.)
+  cros: text("cros"), // Admin field for CROS tracking
+  adminNotes: text("admin_notes"), // Additional admin notes
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -257,6 +266,15 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   paymentDate: true,
   createdAt: true,
+});
+
+// Admin update schema for event registrations
+export const updateEventRegistrationAdminSchema = z.object({
+  membershipType: z.enum(["member", "non_member"]).optional(),
+  isPaid: z.boolean().optional(),
+  paymentMethodTracking: z.enum(["paylanes", "direct_deposit", "cash", "cheque", "bank_transfer"]).optional(),
+  cros: z.string().optional(),
+  adminNotes: z.string().optional(),
 });
 
 // Types

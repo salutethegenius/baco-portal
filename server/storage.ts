@@ -51,6 +51,7 @@ export interface IStorage {
   getUserEventRegistration(userId: string, eventId: string): Promise<EventRegistration | undefined>;
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration>;
+  updateEventRegistration(id: string, updates: Partial<EventRegistration>): Promise<EventRegistration>;
 
   // Document operations
   getUserDocuments(userId: string): Promise<Document[]>;
@@ -375,6 +376,15 @@ export class DatabaseStorage implements IStorage {
         paymentStatus,
         stripePaymentIntentId,
       })
+      .where(eq(eventRegistrations.id, id))
+      .returning();
+    return registration;
+  }
+
+  async updateEventRegistration(id: string, updates: Partial<EventRegistration>): Promise<EventRegistration> {
+    const [registration] = await db
+      .update(eventRegistrations)
+      .set(updates)
       .where(eq(eventRegistrations.id, id))
       .returning();
     return registration;

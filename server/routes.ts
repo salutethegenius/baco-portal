@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertEventSchema, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
+import { insertEventSchema, insertDocumentSchema, insertMessageSchema, updateEventRegistrationAdminSchema } from "@shared/schema";
 import { z } from "zod";
 import QRCode from "qrcode";
 
@@ -633,6 +633,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting event registrations:", error);
       res.status(500).json({ message: "Failed to export event registrations" });
+    }
+  });
+
+  // Admin: Update event registration admin fields
+  app.patch('/api/admin/event-registrations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Validate request body with Zod
+      const validationResult = updateEventRegistrationAdminSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request data",
+          errors: validationResult.error.flatten()
+        });
+      }
+
+      const registration = await storage.updateEventRegistration(req.params.id, validationResult.data);
+      res.json(registration);
+    } catch (error) {
+      console.error("Error updating event registration:", error);
+      res.status(500).json({ message: "Failed to update event registration" });
     }
   });
 

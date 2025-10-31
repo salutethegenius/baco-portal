@@ -24,6 +24,7 @@ import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useLocation } from "wouter";
 import ObjectUploader from "@/components/ObjectUploader";
 import { Award } from "lucide-react";
+import RegistrationAdminEdit from "@/components/RegistrationAdminEdit";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -47,6 +48,8 @@ export default function Admin() {
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [viewRegistrationsDialogOpen, setViewRegistrationsDialogOpen] = useState(false);
   const [selectedEventForRegistrations, setSelectedEventForRegistrations] = useState<any>(null);
+  const [editingRegistration, setEditingRegistration] = useState<any>(null);
+  const [editRegistrationDialogOpen, setEditRegistrationDialogOpen] = useState(false);
   
 
   // Redirect if not admin
@@ -973,12 +976,10 @@ export default function Admin() {
                                   <TableHead>Name</TableHead>
                                   <TableHead>Email</TableHead>
                                   <TableHead>Company</TableHead>
-                                  <TableHead>Position</TableHead>
-                                  <TableHead>Phone</TableHead>
                                   <TableHead>Registration Type</TableHead>
-                                  <TableHead>Payment Status</TableHead>
+                                  <TableHead>Paid</TableHead>
                                   <TableHead>Amount</TableHead>
-                                  <TableHead>Registration Date</TableHead>
+                                  <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -989,23 +990,31 @@ export default function Admin() {
                                     </TableCell>
                                     <TableCell>{registration.email}</TableCell>
                                     <TableCell>{registration.companyName || 'N/A'}</TableCell>
-                                    <TableCell>{registration.position || 'N/A'}</TableCell>
-                                    <TableCell>{registration.phoneNumber || 'N/A'}</TableCell>
                                     <TableCell className="capitalize">
                                       {registration.registrationType?.replace(/_/g, ' ') || 'N/A'}
                                     </TableCell>
                                     <TableCell>
-                                      <Badge 
-                                        className={getStatusColor(registration.paymentStatus)}
-                                      >
-                                        {registration.paymentStatus?.charAt(0).toUpperCase() + registration.paymentStatus?.slice(1)}
-                                      </Badge>
+                                      {registration.isPaid ? (
+                                        <Badge className="bg-green-600">Paid</Badge>
+                                      ) : (
+                                        <Badge variant="outline">Pending</Badge>
+                                      )}
                                     </TableCell>
                                     <TableCell>
                                       {registration.paymentAmount ? `$${registration.paymentAmount}` : 'Free'}
                                     </TableCell>
                                     <TableCell>
-                                      {format(new Date(registration.registrationDate), 'MMM d, yyyy h:mm a')}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingRegistration(registration);
+                                          setEditRegistrationDialogOpen(true);
+                                        }}
+                                        data-testid={`button-manage-${registration.id}`}
+                                      >
+                                        Manage
+                                      </Button>
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -1048,6 +1057,19 @@ export default function Admin() {
                       </div>
                     </DialogContent>
                   </Dialog>
+
+                  {/* Registration Admin Edit Dialog */}
+                  {editingRegistration && (
+                    <RegistrationAdminEdit
+                      registration={editingRegistration}
+                      event={selectedEventForRegistrations}
+                      open={editRegistrationDialogOpen}
+                      onClose={() => {
+                        setEditRegistrationDialogOpen(false);
+                        setEditingRegistration(null);
+                      }}
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
