@@ -96,31 +96,31 @@ export default function RegistrationAdminEdit({ registration, event, open, onClo
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Lead Information */}
           <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-sm">Lead Information</h3>
+            <h3 className="font-semibold text-sm">Lead Information (Read-Only)</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-gray-600">Email:</span>
-                <span className="ml-2 font-medium">{registration?.email}</span>
+                <span className="ml-2 font-medium" data-testid="text-lead-email">{registration?.email}</span>
               </div>
               <div>
                 <span className="text-gray-600">Phone:</span>
-                <span className="ml-2 font-medium">{registration?.phoneNumber || "N/A"}</span>
+                <span className="ml-2 font-medium" data-testid="text-lead-phone">{registration?.phoneNumber || "N/A"}</span>
               </div>
               <div>
                 <span className="text-gray-600">Company:</span>
-                <span className="ml-2 font-medium">{registration?.companyName || "N/A"}</span>
+                <span className="ml-2 font-medium" data-testid="text-lead-company">{registration?.companyName || "N/A"}</span>
               </div>
               <div>
                 <span className="text-gray-600">Position:</span>
-                <span className="ml-2 font-medium">{registration?.position || "N/A"}</span>
+                <span className="ml-2 font-medium" data-testid="text-lead-position">{registration?.position || "N/A"}</span>
               </div>
               <div>
-                <span className="text-gray-600">Registration Type:</span>
-                <span className="ml-2 font-medium capitalize">{registration?.registrationType?.replace(/_/g, " ") || "N/A"}</span>
+                <span className="text-gray-600">Original Tier:</span>
+                <span className="ml-2 font-medium capitalize" data-testid="text-original-tier">{registration?.registrationType?.replace(/_/g, " ") || "N/A"}</span>
               </div>
               <div>
                 <span className="text-gray-600">Amount:</span>
-                <span className="ml-2 font-medium">${registration?.paymentAmount}</span>
+                <span className="ml-2 font-medium" data-testid="text-payment-amount">${registration?.paymentAmount}</span>
               </div>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function RegistrationAdminEdit({ registration, event, open, onClo
               id="isPaid"
               checked={formData.isPaid}
               onCheckedChange={(checked) => setFormData({ ...formData, isPaid: checked })}
-              data-testid="toggle-isPaid"
+              data-testid="switch-isPaid"
             />
           </div>
 
