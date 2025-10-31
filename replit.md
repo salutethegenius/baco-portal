@@ -6,6 +6,19 @@ The application serves as a complete membership management system with features 
 
 ## Recent Updates (August 2025)
 
+### Admin Registration Management Features (October 31, 2025)
+- **Lead Management System**: Comprehensive admin tools to manage event registration leads
+- **Membership Type Tracking**: Admin can set/edit whether a registrant is actually a member or non-member, separate from their original registration tier
+- **Payment Status Toggle**: "Mark as Paid" switch to track when payment is received
+- **Payment Method Tracking**: Dropdown to record actual payment method used (Paylanes, Direct Deposit, Cash, Cheque, Bank Transfer)
+- **CROS Field**: Admin field for CROS reference tracking
+- **Admin Notes**: Private notes field for admin to track additional registration information
+- **Clear Data Distinction**: "Original Tier" (read-only) vs "Membership Type" (admin-editable) to avoid confusion
+- **Manage Button**: Quick access to edit registration details directly from the registrations table
+- **Paid Status Badge**: Visual indicator in registration table showing paid (green) vs pending (outline) status
+- **Full Validation**: Zod-validated API endpoint ensures data integrity for all admin updates
+- **Real-time Updates**: Changes persist to database and UI updates immediately via React Query cache invalidation
+
 ### Updated Event Pricing and Payment Links (October 30, 2025)
 - **Regular Pricing Active**: Early bird period ended, updated to regular rates:
   - Member 1-day: $500 (was $400)
