@@ -425,13 +425,13 @@ export default function BacoConference2025() {
                       <span className="font-semibold text-baco-primary" data-testid="time-day1-multi-jurisdictional-compliance">11:05 AM - 11:55 AM</span>
                     </div>
                     <div className="flex-1">
-                      <Badge className="mb-3">Expert Session</Badge>
+                      <Badge className="mb-3">Session</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day1-multi-jurisdictional-compliance">Managing Multi-Jurisdictional Compliance Risk</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-multi-jurisdictional-compliance">
-                        <strong>Speakers:</strong> Maria Lingham (Director, KPMG Bermuda) & Arslan Athar (Risk Consulting Manager, KPMG Bahamas)
+                        <strong>Speakers:</strong> Maria Lingham (Director in Advisory Practice, KPMG Bermuda) & Arslan Athar (Risk Consulting Manager, KPMG Bahamas)
                       </p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-multi-jurisdictional-compliance">
-                        Practical approaches to harmonizing global standards, mitigating legal exposure, and maintaining operational integrity in complex international environments.
+                        The discussion will focus on practical approaches to harmonizing global standards, mitigating legal exposure, and maintaining operational integrity. Participants will explore tools and techniques to enhance oversight and ensure consistent compliance in complex international environments.
                       </p>
                     </div>
                   </div>
@@ -460,11 +460,11 @@ export default function BacoConference2025() {
                       <Badge className="mb-3">Panel Discussion</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day1-dfnbp-sector-spotlight">DFNBP Sector Spotlight</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-dfnbp-sector-spotlight">
-                        <strong>Panelists:</strong> Kamala Richardson (Attorney, Glinton Sweeting O'Brian Law Firm) & Calvin Rolle (CCO & MLRO, Lighthouse Asset Management)
+                        <strong>Panelists:</strong> Kamala Richardson (Attorney, Glinton Sweeting O'Brian Law Firm) & Calvin Rolle (Chief Compliance Officer & MLRO, Lighthouse Asset Management)
                       </p>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-dfnbp-sector-spotlight"><strong>Moderator:</strong> BACO Asst. Secretary Rayneth Darling</p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-dfnbp-sector-spotlight">
-                        Experts from legal, real estate, and accounting sectors discuss unique compliance challenges and opportunities facing DNFBPs.
+                        This panel brings together experts from the legal, real estate, and accounting sectors to discuss the unique compliance challenges and opportunities facing DNFBPs. With growing regulatory expectations.
                       </p>
                     </div>
                   </div>
@@ -480,11 +480,11 @@ export default function BacoConference2025() {
                       <span className="font-semibold text-baco-primary" data-testid="time-day1-personal-branding">2:05 - 2:35 PM</span>
                     </div>
                     <div className="flex-1">
-                      <Badge className="mb-3">Professional Development</Badge>
+                      <Badge className="mb-3">Session</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day1-personal-branding">Beyond the Policy: Using Personal Branding to Build Influence & Trust</h3>
-                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-personal-branding"><strong>Speaker:</strong> Ethan Quant, CEO Tynes Media Group</p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-personal-branding"><strong>Speaker:</strong> Ethan Quant, CEO Lifestyle Media Group</p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-personal-branding">
-                        Learn how to use personal branding as a strategic tool to enhance visibility and influence decision-making through authenticity and consistent communication.
+                        In this session, compliance officers will learn how to go beyond regulatory frameworks and use personal branding as a strategic tool to build trust, enhance visibility, and influence decision-making. The discussion will focus on how authenticity, clarity, and consistent communication can strengthen stakeholder relationships and elevate the role of compliance within the organization.
                       </p>
                     </div>
                   </div>
@@ -502,9 +502,12 @@ export default function BacoConference2025() {
                     <div className="flex-1">
                       <Badge className="mb-3">Panel Discussion</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day1-troubled-compliance-program">Turning Around a Troubled Compliance Program</h3>
-                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-troubled-compliance-program"><strong>Speaker:</strong> Chief Compliance Officer, OKX Bahamas</p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-troubled-compliance-program">
+                        <strong>Panelists:</strong> Ianthe Tynes (Chief Compliance Officer, OKX Bahamas), Jessica Murray (Chief Compliance Officer, Galaxy Bahamas Ltd.), Derek Smith (Asst V.P. Compliance & MLRO, CG Atlantic Group)
+                      </p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-troubled-compliance-program"><strong>Moderator:</strong> BACO Secretary McQuessa Dawkins</p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-troubled-compliance-program">
-                        Practical strategies for identifying root causes of underperforming compliance programs and implementing effective turnaround plans.
+                        This session offers practical strategies for identifying the root causes of underperforming compliance programs and implementing effective turnaround plans. Attendees will learn how to assess program gaps, rebuild stakeholder trust, and drive cultural change. Real-world examples will highlight how leadership, communication, and strategic alignment can transform compliance from a challenge into a strength.
                       </p>
                     </div>
                   </div>
@@ -531,12 +534,12 @@ export default function BacoConference2025() {
                     </div>
                     <div className="flex-1">
                       <Badge className="mb-3">Speaker</Badge>
-                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-digital-finance-opportunities">The New Compliance Frontier: Positioning Bahamian Professionals for Digital Finance and Cross-Border Opportunities</h3>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-digital-finance-opportunities">The New Compliance Frontier: Positioning Bahamian Professionals for Trade, Digital Finance and Cross-Border Opportunities</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-digital-finance-opportunities">
-                        <strong>Speakers:</strong> Senator Barry Griffin (Chairman, Bahamas Financial Services Board) & Jessica Murray (Chief Compliance Officer, Galaxy Bahamas Ltd.)
+                        <strong>Speaker:</strong> Senator Barry Griffin (Chairman of The Bahamas Trade Commission)
                       </p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-digital-finance-opportunities">
-                        Explore how Bahamian compliance professionals can strategically position themselves to capitalize on emerging opportunities in trade, digital finance, and cross-border services.
+                        We will explore how Bahamian compliance professionals can strategically position themselves to capitalize on emerging opportunities in trade, digital finance, and cross-border services. It will highlight the evolving global landscape and the skills needed to navigate global standards while fostering regional competitiveness.
                       </p>
                     </div>
                   </div>
@@ -555,11 +558,11 @@ export default function BacoConference2025() {
                       <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Presidents Round Table</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day1-presidents-round-table">The Evolution of Compliance: 25 Years of Leadership, Lessons, and Legacy</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-presidents-round-table">
-                        <strong>Panelists:</strong> Founding President Cheryl Bazard, Past Presidents Kesna Pinder & Derek Smith, Natasha Bastian (Asst V.P. Compliance & MLRO, CG Atlantic Group)
+                        <strong>President's Panel:</strong> Founding President Cheryl Bazard, Past President Kesna Pinder, Past President Natasha Bastian
                       </p>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day1-presidents-round-table"><strong>Moderator:</strong> President Endric Deleveaux</p>
                       <p className="text-gray-600 text-sm" data-testid="description-day1-presidents-round-table">
-                        A reflective panel featuring former BACO presidents who shaped the compliance landscape over 25 years, highlighting milestones, lessons learned, and the enduring impact of integrity-driven leadership.
+                        A reflective panel featuring former BACO presidents who shaped the compliance landscape over the past 25 years. This session highlights key milestones, lessons learned, and the enduring impact of integrity-driven leadership on the future of compliance.
                       </p>
                     </div>
                   </div>
@@ -613,7 +616,7 @@ export default function BacoConference2025() {
                       <span className="font-semibold text-baco-primary" data-testid="time-day2-keynote">9:00 - 9:40 AM</span>
                     </div>
                     <div className="flex-1">
-                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Keynote Presenter</Badge>
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Presenter</Badge>
                       <h3 className="font-bold text-lg mb-2" data-testid="title-day2-keynote">Integrity in Action: Leading with Purpose in Times of Change</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day2-keynote"><strong>Speaker:</strong> Dr. Leo Rolle, CEO Chamber of Commerce</p>
                       <p className="text-gray-600 text-sm mb-2" data-testid="description-day2-keynote">
@@ -708,7 +711,7 @@ export default function BacoConference2025() {
                     </div>
                     <div className="flex-1">
                       <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Keynote Closing Speaker</Badge>
-                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-closing-keynote">From Roots to Reach: Building Legacy</h3>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-closing-keynote">From Roots to Reach, Building Legacy</h3>
                       <p className="text-gray-700 mb-3" data-testid="speaker-day2-closing-keynote"><strong>Speaker:</strong> Valdez Russell, Principal VKR Insights</p>
                       <p className="text-gray-600 text-sm mb-2" data-testid="description-day2-closing-keynote">
                         Explore how strong compliance foundations have enabled meaningful growth and lasting impact. Attendees will gain:
