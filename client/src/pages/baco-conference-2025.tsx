@@ -100,14 +100,15 @@ export default function BacoConference2025() {
     price: "350",
     maxAttendees: 500,
     currentAttendees: 184, // Updated to reflect current attendees
-    slug: "baco-conference-2025"
+    slug: "baco-conference-2025",
+    registrationClosed: true // Registration is now closed
   };
 
   const handleRegistrationSuccess = () => {
     setShowRegistrationForm(false);
   };
 
-  const isRegistrationClosed = conferenceEvent.currentAttendees >= conferenceEvent.maxAttendees;
+  const isRegistrationClosed = true; // Registration is now closed for this event
 
   return (
     <div className="min-h-screen bg-white">

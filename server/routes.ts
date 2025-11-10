@@ -878,7 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentAttendees: 184,
         status: "upcoming",
         isPublic: true,
-        registrationClosed: true,
+        registrationClosed: true, // Registration is closed
         createdBy: userId,
       };
 
