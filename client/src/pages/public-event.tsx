@@ -207,9 +207,6 @@ export default function PublicEvent() {
                     <p className="text-gray-800 text-sm font-medium">
                       Registration is no longer available
                     </p>
-                    <p className="text-gray-600 text-xs mt-1">
-                      {event.currentAttendees}/{event.maxAttendees} attendees registered
-                    </p>
                   </div>
                 )}
               </CardContent>
