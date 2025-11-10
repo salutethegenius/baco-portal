@@ -26,6 +26,7 @@ const apiEventSchema = z.object({
     typeof val === 'string' ? parseInt(val) : val
   ),
   status: z.string().optional().default("upcoming"),
+  registrationClosed: z.boolean().optional().default(false),
 
 });
 

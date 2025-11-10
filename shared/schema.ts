@@ -85,6 +85,7 @@ export const events = pgTable("events", {
   currentAttendees: integer("current_attendees").default(0),
   status: varchar("status").default("upcoming"), // upcoming, ongoing, completed, cancelled
   isPublic: boolean("is_public").default(true),
+  registrationClosed: boolean("registration_closed").default(false),
   
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),

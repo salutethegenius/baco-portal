@@ -34,6 +34,7 @@ const eventSchema = z.object({
   location: z.string().optional(),
   price: z.coerce.number().min(0),
   maxAttendees: z.coerce.number().min(1),
+  registrationClosed: z.boolean().optional().default(false),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -106,6 +107,7 @@ export default function Admin() {
       location: "",
       price: 0,
       maxAttendees: 50,
+      registrationClosed: false,
     },
   });
 
@@ -276,6 +278,7 @@ export default function Admin() {
       location: event.location || "",
       price: parseFloat(event.price) || 0,
       maxAttendees: event.maxAttendees || 50,
+      registrationClosed: event.registrationClosed || false,
     });
     setEditEventDialogOpen(true);
   };
@@ -773,8 +776,31 @@ export default function Admin() {
                               )}
                             />
 
-                            
                           </div>
+
+                          <FormField
+                            control={form.control}
+                            name="registrationClosed"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Close Registration</FormLabel>
+                                  <div className="text-sm text-muted-foreground">
+                                    Prevent new registrations for this event
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={(e) => field.onChange(e.target.checked)}
+                                    className="h-4 w-4"
+                                    data-testid="checkbox-registration-closed"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
 
                           <div className="flex space-x-4">
                             <Button
@@ -927,7 +953,29 @@ export default function Admin() {
                             />
                           </div>
 
-                          
+                          <FormField
+                            control={form.control}
+                            name="registrationClosed"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Close Registration</FormLabel>
+                                  <div className="text-sm text-muted-foreground">
+                                    Prevent new registrations for this event
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={(e) => field.onChange(e.target.checked)}
+                                    className="h-4 w-4"
+                                    data-testid="checkbox-edit-registration-closed"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
 
                           <div className="flex space-x-4">
                             <Button
