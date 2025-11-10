@@ -57,8 +57,11 @@ export default function PublicEvent() {
   const eventEndDate = new Date(event.endDate);
   const isPastEvent = eventDate < new Date();
 
-  const registrationStatus = isPastEvent
-    ? { text: "Event Ended", variant: "secondary", disabled: true }
+  // Check if registration is explicitly closed (you can add a registrationClosed field to the event)
+  const isRegistrationClosed = event.registrationClosed || isPastEvent;
+  
+  const registrationStatus = isRegistrationClosed
+    ? { text: "Registration Closed", variant: "secondary", disabled: true }
     : event.currentAttendees >= event.maxAttendees
     ? { text: "Event Full", variant: "secondary", disabled: true }
     : { text: "Register Now", variant: "default", disabled: false };
@@ -199,10 +202,13 @@ export default function PublicEvent() {
                   </div>
                 )}
 
-                {registrationStatus.disabled && registrationStatus.text === "Event Ended" && (
+                {registrationStatus.disabled && registrationStatus.text === "Registration Closed" && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
                     <p className="text-gray-800 text-sm font-medium">
                       Registration is no longer available
+                    </p>
+                    <p className="text-gray-600 text-xs mt-1">
+                      {event.currentAttendees}/{event.maxAttendees} attendees registered
                     </p>
                   </div>
                 )}

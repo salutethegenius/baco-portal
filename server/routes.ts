@@ -875,9 +875,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: "Bahamar Convention Center, Nassau, Bahamas",
         price: "350.00",
         maxAttendees: 500,
-        currentAttendees: 0,
+        currentAttendees: 184,
         status: "upcoming",
         isPublic: true,
+        registrationClosed: true,
         createdBy: userId,
       };
 

@@ -99,7 +99,7 @@ export default function BacoConference2025() {
     location: "Bahamar Convention Center, Nassau, Bahamas",
     price: "350",
     maxAttendees: 500,
-    currentAttendees: 0,
+    currentAttendees: 184, // Updated to reflect current attendees
     slug: "baco-conference-2025"
   };
 
@@ -107,12 +107,14 @@ export default function BacoConference2025() {
     setShowRegistrationForm(false);
   };
 
+  const isRegistrationClosed = conferenceEvent.currentAttendees >= conferenceEvent.maxAttendees;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section with Background Image */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url('/Grand-Hyatt-Baha-Mar-P212-Convention-Center-Hotel-Main-Entrance.16x9.webp')`,
@@ -167,13 +169,23 @@ export default function BacoConference2025() {
           <div className={`mb-8 md:mb-12 transition-all duration-1000 delay-1100 ${
             isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
           }`}>
-            <Button 
-              onClick={handleRegisterClick}
-              size="lg"
-              className="bg-gold-500 hover:bg-gold-600 text-black font-bold px-8 sm:px-12 py-3 sm:py-4 text-lg sm:text-xl rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 animate-bounce hover:animate-none touch-manipulation"
-            >
-              Register Now
-            </Button>
+            {isRegistrationClosed ? (
+              <Button
+                size="lg"
+                className="bg-gray-400 text-white cursor-not-allowed text-lg px-8 py-6"
+                disabled={true}
+              >
+                Registration Closed ({conferenceEvent.currentAttendees}/{conferenceEvent.maxAttendees} Registered)
+              </Button>
+            ) : (
+              <Button
+                onClick={handleRegisterClick}
+                size="lg"
+                className="bg-gold-500 hover:bg-gold-600 text-black font-bold px-8 sm:px-12 py-3 sm:py-4 text-lg sm:text-xl rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 animate-bounce hover:animate-none touch-manipulation"
+              >
+                Register Now
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -197,8 +209,8 @@ export default function BacoConference2025() {
               { icon: Network, title: "Expert Insights", description: "Gain insights from top compliance experts on emerging trends and challenges", delay: 1600 },
               { icon: Trophy, title: "Interactive Workshops", description: "Participate in hands-on workshops designed to strengthen your skills", delay: 1700 }
             ].map((item, index) => (
-              <Card 
-                key={index} 
+              <Card
+                key={index}
                 className={`text-center p-4 sm:p-6 hover:shadow-lg transition-all duration-1000 hover:transform hover:scale-105 ${
                   isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 }`}
@@ -258,12 +270,12 @@ export default function BacoConference2025() {
             <Card className={`p-4 sm:p-6 lg:p-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: '1900ms' }}>
               <CardHeader className="text-center pb-3 sm:pb-4">
                 <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-baco-primary mb-2">
-                  Join 500+ Compliance Professionals
+                  Join {conferenceEvent.maxAttendees} Compliance Professionals
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6">
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-baco-primary mb-2">Starting at $500</div>
+                  <div className="text-xl sm:text-2xl font-bold text-baco-primary mb-2">Starting at $350</div>
                   <p className="text-gray-600 text-sm sm:text-base">BSD (Bahamian Dollar)</p>
                   <p className="text-xs sm:text-sm text-green-600 font-medium mt-1">Multiple Options Available</p>
                 </div>

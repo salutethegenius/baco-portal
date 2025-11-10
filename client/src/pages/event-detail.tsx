@@ -65,6 +65,7 @@ export default function EventDetail() {
 
   const getRegistrationStatus = () => {
     if (isRegistered) return { text: "Registered", variant: "success", disabled: true };
+    if (event.registrationClosed) return { text: "Registration Closed", variant: "secondary", disabled: true };
     if (isPastEvent) return { text: "Past Event", variant: "secondary", disabled: true };
     if (isFull) return { text: "Event Full", variant: "destructive", disabled: true };
     return { text: event.price > 0 ? `Register - $${event.price}` : "Register Free", variant: "default", disabled: false };
