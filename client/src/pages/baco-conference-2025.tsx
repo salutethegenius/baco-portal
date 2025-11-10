@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, MapPin, Users, Award, Network, Trophy } from "lucide-react";
 import EventRegistrationForm from "@/components/EventRegistrationForm";
 import confetti from 'canvas-confetti';
@@ -311,6 +312,454 @@ export default function BacoConference2025() {
                 </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Program Schedule Section */}
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Conference Program</h2>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              Beyond the Rulebook: Cultivating a Culture of Ethical Resilience in Regulatory Compliance
+            </p>
+          </div>
+
+          <Tabs defaultValue="day1" className="w-full">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8" data-testid="tabs-program-days">
+              <TabsTrigger value="day1" data-testid="tab-day1">Day 1 - Nov 13</TabsTrigger>
+              <TabsTrigger value="day2" data-testid="tab-day2">Day 2 - Nov 14</TabsTrigger>
+            </TabsList>
+
+            {/* Day 1 Schedule */}
+            <TabsContent value="day1" className="space-y-6" data-testid="content-day1">
+              {/* Registration & Breakfast */}
+              <Card className="overflow-hidden" data-testid="session-day1-registration">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-registration">8:00 - 8:30 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-registration">Registration, Breakfast & Meet the Partners</h3>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Opening Remarks */}
+              <Card className="overflow-hidden" data-testid="session-day1-opening">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-opening">8:40 - 9:00 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Opening Remarks</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-opening">Invocation & Welcome</h3>
+                      <p className="text-gray-700 mb-2" data-testid="speaker-day1-opening"><strong>Speaker:</strong> Endric Deleveaux, BACO President</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Keynote Opening */}
+              <Card className="overflow-hidden border-l-4 border-l-baco-primary" data-testid="session-day1-keynote">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-keynote">9:00 - 9:40 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Keynote Speaker</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-keynote">Nurturing Integrity as a Catalyst for Sustainable Growth</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-keynote"><strong>Speaker:</strong> The Hon. Deputy Prime Minister Chester Cooper</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-keynote">
+                        Integrity is more than a compliance requirement—it's the foundation of lasting success. This session explores how organizations can embed integrity into their culture, decision-making, and leadership to drive sustainable growth.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Regulatory Round Table */}
+              <Card className="overflow-hidden" data-testid="session-day1-regulatory-roundtable">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-regulatory-roundtable">9:45 - 10:45 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Regulatory Round Table</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-regulatory-roundtable">From Regulation to Reputation: Leveraging Integrity for a Stronger Mutual Evaluation Outcome</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-regulatory-roundtable"><strong>Panel:</strong> Group of Financial Services Regulators</p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-regulatory-roundtable"><strong>Moderator:</strong> Past President Maria Dorsett</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-regulatory-roundtable">
+                        This panel explores how a culture of integrity enhances institutional reputation during mutual evaluations, discussing transparency, ethical leadership, and alignment of regulatory frameworks with reputational goals.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coffee Break */}
+              <Card className="overflow-hidden bg-gray-100" data-testid="session-day1-coffee-break-1">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day1-coffee-break-1">10:45 - 11:00 AM - Coffee Break</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Multi-Jurisdictional Compliance */}
+              <Card className="overflow-hidden" data-testid="session-day1-multi-jurisdictional-compliance">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-multi-jurisdictional-compliance">11:05 AM - 11:55 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Expert Session</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-multi-jurisdictional-compliance">Managing Multi-Jurisdictional Compliance Risk</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-multi-jurisdictional-compliance">
+                        <strong>Speakers:</strong> Maria Lingham (Director, KPMG Bermuda) & Arslan Athar (Risk Consulting Manager, KPMG Bahamas)
+                      </p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-multi-jurisdictional-compliance">
+                        Practical approaches to harmonizing global standards, mitigating legal exposure, and maintaining operational integrity in complex international environments.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Lunch */}
+              <Card className="overflow-hidden bg-gray-100" data-testid="session-day1-lunch">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day1-lunch">12:00 - 12:55 PM - Lunch</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* DFNBP Panel */}
+              <Card className="overflow-hidden" data-testid="session-day1-dfnbp-sector-spotlight">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-dfnbp-sector-spotlight">1:10 - 1:50 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Panel Discussion</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-dfnbp-sector-spotlight">DFNBP Sector Spotlight</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-dfnbp-sector-spotlight">
+                        <strong>Panelists:</strong> Kamala Richardson (Attorney, Glinton Sweeting O'Brian Law Firm) & Calvin Rolle (CCO & MLRO, Lighthouse Asset Management)
+                      </p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-dfnbp-sector-spotlight"><strong>Moderator:</strong> BACO Asst. Secretary Rayneth Darling</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-dfnbp-sector-spotlight">
+                        Experts from legal, real estate, and accounting sectors discuss unique compliance challenges and opportunities facing DNFBPs.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Personal Branding */}
+              <Card className="overflow-hidden" data-testid="session-day1-personal-branding">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-personal-branding">2:05 - 2:35 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Professional Development</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-personal-branding">Beyond the Policy: Using Personal Branding to Build Influence & Trust</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-personal-branding"><strong>Speaker:</strong> Ethan Quant, CEO Tynes Media Group</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-personal-branding">
+                        Learn how to use personal branding as a strategic tool to enhance visibility and influence decision-making through authenticity and consistent communication.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Troubled Compliance Program */}
+              <Card className="overflow-hidden" data-testid="session-day1-troubled-compliance-program">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-troubled-compliance-program">2:35 - 3:05 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Panel Discussion</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-troubled-compliance-program">Turning Around a Troubled Compliance Program</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-troubled-compliance-program"><strong>Speaker:</strong> Chief Compliance Officer, OKX Bahamas</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-troubled-compliance-program">
+                        Practical strategies for identifying root causes of underperforming compliance programs and implementing effective turnaround plans.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coffee Break */}
+              <Card className="overflow-hidden bg-gray-100" data-testid="session-day1-coffee-break-2">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day1-coffee-break-2">3:05 - 3:15 PM - Coffee Break</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Digital Finance Opportunities */}
+              <Card className="overflow-hidden" data-testid="session-day1-digital-finance-opportunities">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-digital-finance-opportunities">3:20 - 4:00 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Speaker</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-digital-finance-opportunities">The New Compliance Frontier: Positioning Bahamian Professionals for Digital Finance and Cross-Border Opportunities</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-digital-finance-opportunities">
+                        <strong>Speakers:</strong> Senator Barry Griffin (Chairman, Bahamas Financial Services Board) & Jessica Murray (Chief Compliance Officer, Galaxy Bahamas Ltd.)
+                      </p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-digital-finance-opportunities">
+                        Explore how Bahamian compliance professionals can strategically position themselves to capitalize on emerging opportunities in trade, digital finance, and cross-border services.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Presidents Round Table */}
+              <Card className="overflow-hidden border-l-4 border-l-gold-500" data-testid="session-day1-presidents-round-table">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day1-presidents-round-table">4:10 - 4:50 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Presidents Round Table</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day1-presidents-round-table">The Evolution of Compliance: 25 Years of Leadership, Lessons, and Legacy</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-presidents-round-table">
+                        <strong>Panelists:</strong> Founding President Cheryl Bazard, Past Presidents Kesna Pinder & Derek Smith, Natasha Bastian (Asst V.P. Compliance & MLRO, CG Atlantic Group)
+                      </p>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day1-presidents-round-table"><strong>Moderator:</strong> President Endric Deleveaux</p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day1-presidents-round-table">
+                        A reflective panel featuring former BACO presidents who shaped the compliance landscape over 25 years, highlighting milestones, lessons learned, and the enduring impact of integrity-driven leadership.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Wrap-Up */}
+              <Card className="overflow-hidden" data-testid="session-day1-wrap-up">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day1-wrap-up">4:50 - 4:55 PM - Wrap-Up</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Day 2 Schedule */}
+            <TabsContent value="day2" className="space-y-6" data-testid="content-day2">
+              {/* Registration & Coffee */}
+              <Card className="overflow-hidden" data-testid="session-day2-registration">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-registration">8:00 - 8:30 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-registration">Registration, Morning Coffee & Meet the Partners</h3>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Welcome */}
+              <Card className="overflow-hidden" data-testid="session-day2-welcome">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day2-welcome">8:50 - 9:00 AM - Welcome</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Morning Keynote */}
+              <Card className="overflow-hidden border-l-4 border-l-baco-primary" data-testid="session-day2-keynote">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-keynote">9:00 - 9:40 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Keynote Presenter</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-keynote">Integrity in Action: Leading with Purpose in Times of Change</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day2-keynote"><strong>Speaker:</strong> Dr. Leo Rolle, CEO Chamber of Commerce</p>
+                      <p className="text-gray-600 text-sm mb-2" data-testid="description-day2-keynote">
+                        True leadership is defined by the courage to lead with integrity, especially when the path is unclear. This keynote explores:
+                      </p>
+                      <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                        <li>Compliance as a foundation for trust, not a barrier to progress</li>
+                        <li>Embracing ethical challenges as opportunities to lead with clarity</li>
+                        <li>Building a legacy where doing what's right is inseparable from success</li>
+                        <li>Reimagining business as rooted in responsibility and shared purpose</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* CRS/FATCA Round Table */}
+              <Card className="overflow-hidden" data-testid="session-day2-crs-fatca-roundtable">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-crs-fatca-roundtable">9:45 - 10:40 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Round Table</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-crs-fatca-roundtable">From Missteps to Mastery: Strengthening CRS/FATCA Compliance Through Error Analysis</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day2-crs-fatca-roundtable">
+                        <strong>Speaker:</strong> Samantha Pratt, CEO/Founder Blue Turtle Consultants, Corporate & Financial Service Consultant
+                      </p>
+                      <p className="text-gray-600 text-sm" data-testid="description-day2-crs-fatca-roundtable">
+                        Discover how compliance missteps can become powerful learning tools. This session delves into common reporting errors in CRS and FATCA, offering practical approaches to error analysis and remediation.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coffee Break */}
+              <Card className="overflow-hidden bg-gray-100" data-testid="session-day2-coffee-break">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day2-coffee-break">10:40 - 11:00 AM - Coffee Break</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 20 Compliance Mistakes */}
+              <Card className="overflow-hidden" data-testid="session-day2-compliance-mistakes">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-compliance-mistakes">11:05 AM - 11:50 AM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3">Presenter</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-compliance-mistakes">Avoiding the Traps: 20 Compliance Mistakes You Can Fix Today</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day2-compliance-mistakes"><strong>Speaker:</strong> Neikeisha Smith, Co-Founder Internal Audit Solutions</p>
+                      <p className="text-gray-600 text-sm mb-2" data-testid="description-day2-compliance-mistakes">
+                        This session unpacks 20 critical issues that organizations must avoid to build resilient, ethical, and effective compliance frameworks, exploring:
+                      </p>
+                      <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                        <li>Hidden vulnerabilities that weaken compliance culture</li>
+                        <li>Misalignments between policy and practice</li>
+                        <li>The cost of neglecting accountability and transparency</li>
+                        <li>Practical strategies to transform challenges into opportunities</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Lunch */}
+              <Card className="overflow-hidden bg-gray-100" data-testid="session-day2-lunch">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <Clock className="w-5 h-5 text-baco-primary" />
+                    <span className="font-semibold" data-testid="time-day2-lunch">12:00 - 12:55 PM - Lunch</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Closing Keynote */}
+              <Card className="overflow-hidden border-l-4 border-l-baco-primary" data-testid="session-day2-closing-keynote">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-closing-keynote">1:10 - 2:00 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Keynote Closing Speaker</Badge>
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-closing-keynote">From Roots to Reach: Building Legacy</h3>
+                      <p className="text-gray-700 mb-3" data-testid="speaker-day2-closing-keynote"><strong>Speaker:</strong> Valdez Russell, Principal VKR Insights</p>
+                      <p className="text-gray-600 text-sm mb-2" data-testid="description-day2-closing-keynote">
+                        Explore how strong compliance foundations have enabled meaningful growth and lasting impact. Attendees will gain:
+                      </p>
+                      <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                        <li>Understanding of how core compliance values shaped organizational culture</li>
+                        <li>Insights into the expanding role of compliance in driving business integrity</li>
+                        <li>Reflections on the legacy being built through leadership and innovation</li>
+                        <li>A clear roadmap to strengthen programs and foster a culture where integrity thrives</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Closing Remarks */}
+              <Card className="overflow-hidden" data-testid="session-day2-closing-remarks">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
+                      <span className="font-semibold text-baco-primary" data-testid="time-day2-closing-remarks">2:00 - 2:10 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-2" data-testid="title-day2-closing-remarks">Closing Remarks</h3>
+                      <p className="text-gray-700" data-testid="speaker-day2-closing-remarks"><strong>Speaker:</strong> Royann Ford, BACO Vice President</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Cocktail Reception */}
+              <Card className="overflow-hidden border-l-4 border-l-gold-500 bg-gradient-to-r from-gold-50 to-white" data-testid="session-day2-cocktail-reception">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                      <Clock className="w-5 h-5 text-gold-600 flex-shrink-0" />
+                      <span className="font-semibold text-gold-600" data-testid="time-day2-cocktail-reception">2:10 - 5:00 PM</span>
+                    </div>
+                    <div className="flex-1">
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">Special Event</Badge>
+                      <h3 className="font-bold text-xl mb-2 text-gold-700" data-testid="title-day2-cocktail-reception">Cocktail Reception</h3>
+                      <p className="text-gray-700" data-testid="description-day2-cocktail-reception">
+                        Join us for a celebratory cocktail reception to network with peers and reflect on 25 years of compliance excellence.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
 
