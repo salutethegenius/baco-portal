@@ -177,7 +177,7 @@ export default function BacoConference2025() {
                 className="bg-gray-400 text-white cursor-not-allowed text-lg px-8 py-6"
                 disabled={true}
               >
-                Registration Closed ({conferenceEvent.currentAttendees}/{conferenceEvent.maxAttendees} Registered)
+                Registration Closed
               </Button>
             ) : (
               <Button
