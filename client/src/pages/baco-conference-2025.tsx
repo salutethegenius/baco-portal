@@ -521,7 +521,7 @@ export default function BacoConference2025() {
                         data-testid="speaker-day1-keynote"
                       >
                         <strong>Speaker:</strong> The Hon. Deputy Prime Minister
-                        Chester I. Cooper
+                        I. Chester Cooper
                       </p>
                       <p
                         className="text-gray-600 text-sm"
@@ -697,7 +697,7 @@ export default function BacoConference2025() {
                         className="font-bold text-lg mb-2"
                         data-testid="title-day1-dfnbp-sector-spotlight"
                       >
-                        DFNBP Sector Spotlight
+                        DNFBP Sector Spotlight
                       </h3>
                       <p
                         className="text-gray-700 mb-3"
