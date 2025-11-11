@@ -215,6 +215,23 @@ export default function PublicEvent() {
         </div>
       </div>
 
+      {/* Sponsors Section - Only show for BACO Conference 2025 */}
+      {event.slug === 'baco-conference-2025' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Our Sponsors</h2>
+            <p className="text-gray-600">Thank you to our valued partners</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <img 
+              src="/baco-conference-2025-sponsors.png" 
+              alt="BACO Conference 2025 Sponsors" 
+              className="w-full max-w-4xl mx-auto"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Registration Form Modal */}
       {showRegistrationForm && (
         <EventRegistrationForm
