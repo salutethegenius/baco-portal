@@ -1387,17 +1387,19 @@ export default function BacoConference2025() {
               Our Sponsors
             </h2>
             <p className="text-lg sm:text-xl text-gray-600">
-              Thank you to our valued partners for making this 25th anniversary celebration possible
+              Thank you to our valued partners for making this 25th anniversary
+              celebration possible
             </p>
           </div>
           <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-lg p-6 sm:p-8 lg:p-12">
-            <img 
-              src="/baco-conference-2025-sponsors.png" 
-              alt="BACO Conference 2025 Sponsors - Gold, Silver, and Bronze tier partners" 
+            <img
+              src="sponsors.jpeg"
+              alt="BACO Conference 2025 Sponsors - Gold, Silver, and Bronze tier partners"
               className="w-full max-w-5xl mx-auto rounded-lg"
             />
             <p className="text-center text-sm text-gray-500 mt-6 italic">
-              "Committed to Compliance" - Supporting excellence in the compliance profession
+              "Committed to Compliance" - Supporting excellence in the
+              compliance profession
             </p>
           </div>
         </div>
