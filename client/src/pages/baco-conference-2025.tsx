@@ -711,7 +711,7 @@ export default function BacoConference2025() {
                         className="text-gray-700 mb-3"
                         data-testid="speaker-day1-dfnbp-sector-spotlight"
                       >
-                        <strong>Moderator:</strong> BACO Asst. Secretary Rayneth
+                        <strong>Moderator:</strong> BACO Asst. Treasurer Rayneth
                         Darling
                       </p>
                       <p
@@ -815,8 +815,8 @@ export default function BacoConference2025() {
                         className="text-gray-700 mb-3"
                         data-testid="speaker-day1-troubled-compliance-program"
                       >
-                        <strong>Moderator:</strong> BACO Secretary McQuessa
-                        Dawkins
+                        <strong>Moderator:</strong> BACO Asst. Secretary Raisa
+                        Eve
                       </p>
                       <p
                         className="text-gray-600 text-sm"
