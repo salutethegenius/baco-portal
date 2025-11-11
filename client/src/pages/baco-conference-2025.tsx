@@ -113,7 +113,7 @@ export default function BacoConference2025() {
     startDate: "2025-11-13T08:00:00",
     endDate: "2025-11-14T17:00:00",
     location: "Bahamar Convention Center, Nassau, Bahamas",
-    price: "350",
+    price: "500",
     maxAttendees: 500,
     currentAttendees: 184, // Updated to reflect current attendees
     slug: "baco-conference-2025",
@@ -346,7 +346,7 @@ export default function BacoConference2025() {
             >
               <CardHeader className="text-center pb-3 sm:pb-4">
                 <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-baco-primary mb-2">
-                  Join {conferenceEvent.maxAttendees} Compliance Professionals
+                  Join 200 Compliance Professionals
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6">
