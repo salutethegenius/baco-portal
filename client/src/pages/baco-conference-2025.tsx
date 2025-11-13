@@ -675,10 +675,10 @@ export default function BacoConference2025() {
                 </CardContent>
               </Card>
 
-              {/* DFNBP Panel */}
+              {/* Presidents Round Table */}
               <Card
-                className="overflow-hidden"
-                data-testid="session-day1-dfnbp-sector-spotlight"
+                className="overflow-hidden border-l-4 border-l-gold-500"
+                data-testid="session-day1-presidents-round-table"
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row md:items-start gap-4">
@@ -686,42 +686,45 @@ export default function BacoConference2025() {
                       <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
                       <span
                         className="font-semibold text-baco-primary"
-                        data-testid="time-day1-dfnbp-sector-spotlight"
+                        data-testid="time-day1-presidents-round-table"
                       >
-                        4:10 - 4:50 PM
+                        1:10 - 1:50 PM
                       </span>
                     </div>
                     <div className="flex-1">
-                      <Badge className="mb-3">Panel Discussion</Badge>
+                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">
+                        Presidents Round Table
+                      </Badge>
                       <h3
                         className="font-bold text-lg mb-2"
-                        data-testid="title-day1-dfnbp-sector-spotlight"
+                        data-testid="title-day1-presidents-round-table"
                       >
-                        DNFBP Sector Spotlight
+                        The Evolution of Compliance: 25 Years of Leadership,
+                        Lessons, and Legacy
                       </h3>
                       <p
                         className="text-gray-700 mb-3"
-                        data-testid="speaker-day1-dfnbp-sector-spotlight"
+                        data-testid="speaker-day1-presidents-round-table"
                       >
-                        <strong>Panelists:</strong> Kamala Richardson (Attorney,
-                        Glinton Sweeting O'Brian Law Firm) & Calvin Rolle (Chief
-                        Compliance Officer & MLRO, Lighthouse Asset Management)
+                        <strong>President's Panel:</strong> Founding President
+                        Cheryl Bazard, Past President Kesna Pinder, Past
+                        President Natasha Bastian
                       </p>
                       <p
                         className="text-gray-700 mb-3"
-                        data-testid="speaker-day1-dfnbp-sector-spotlight"
+                        data-testid="speaker-day1-presidents-round-table"
                       >
-                        <strong>Moderator:</strong> BACO Asst. Treasurer Rayneth
-                        Darling
+                        <strong>Moderator:</strong> President Endric Deleveaux
                       </p>
                       <p
                         className="text-gray-600 text-sm"
-                        data-testid="description-day1-dfnbp-sector-spotlight"
+                        data-testid="description-day1-presidents-round-table"
                       >
-                        This panel brings together experts from the legal, real
-                        estate, and accounting sectors to discuss the unique
-                        compliance challenges and opportunities facing DNFBP.
-                        With growing regulatory expectations.
+                        A reflective panel featuring former BACO presidents who
+                        shaped the compliance landscape over the past 25 years.
+                        This session highlights key milestones, lessons learned,
+                        and the enduring impact of integrity-driven leadership
+                        on the future of compliance.
                       </p>
                     </div>
                   </div>
@@ -904,10 +907,10 @@ export default function BacoConference2025() {
                 </CardContent>
               </Card>
 
-              {/* Presidents Round Table */}
+              {/* DFNBP Panel */}
               <Card
-                className="overflow-hidden border-l-4 border-l-gold-500"
-                data-testid="session-day1-presidents-round-table"
+                className="overflow-hidden"
+                data-testid="session-day1-dfnbp-sector-spotlight"
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row md:items-start gap-4">
@@ -915,45 +918,42 @@ export default function BacoConference2025() {
                       <Clock className="w-5 h-5 text-baco-primary flex-shrink-0" />
                       <span
                         className="font-semibold text-baco-primary"
-                        data-testid="time-day1-presidents-round-table"
+                        data-testid="time-day1-dfnbp-sector-spotlight"
                       >
-                        1:10 - 1:50 PM
+                        4:10 - 4:50 PM
                       </span>
                     </div>
                     <div className="flex-1">
-                      <Badge className="mb-3 bg-gold-500 hover:bg-gold-600">
-                        Presidents Round Table
-                      </Badge>
+                      <Badge className="mb-3">Panel Discussion</Badge>
                       <h3
                         className="font-bold text-lg mb-2"
-                        data-testid="title-day1-presidents-round-table"
+                        data-testid="title-day1-dfnbp-sector-spotlight"
                       >
-                        The Evolution of Compliance: 25 Years of Leadership,
-                        Lessons, and Legacy
+                        DNFBP Sector Spotlight
                       </h3>
                       <p
                         className="text-gray-700 mb-3"
-                        data-testid="speaker-day1-presidents-round-table"
+                        data-testid="speaker-day1-dfnbp-sector-spotlight"
                       >
-                        <strong>President's Panel:</strong> Founding President
-                        Cheryl Bazard, Past President Kesna Pinder, Past
-                        President Natasha Bastian
+                        <strong>Panelists:</strong> Kamala Richardson (Attorney,
+                        Glinton Sweeting O'Brian Law Firm) & Calvin Rolle (Chief
+                        Compliance Officer & MLRO, Lighthouse Asset Management)
                       </p>
                       <p
                         className="text-gray-700 mb-3"
-                        data-testid="speaker-day1-presidents-round-table"
+                        data-testid="speaker-day1-dfnbp-sector-spotlight"
                       >
-                        <strong>Moderator:</strong> President Endric Deleveaux
+                        <strong>Moderator:</strong> BACO Asst. Treasurer Rayneth
+                        Darling
                       </p>
                       <p
                         className="text-gray-600 text-sm"
-                        data-testid="description-day1-presidents-round-table"
+                        data-testid="description-day1-dfnbp-sector-spotlight"
                       >
-                        A reflective panel featuring former BACO presidents who
-                        shaped the compliance landscape over the past 25 years.
-                        This session highlights key milestones, lessons learned,
-                        and the enduring impact of integrity-driven leadership
-                        on the future of compliance.
+                        This panel brings together experts from the legal, real
+                        estate, and accounting sectors to discuss the unique
+                        compliance challenges and opportunities facing DNFBP.
+                        With growing regulatory expectations.
                       </p>
                     </div>
                   </div>
