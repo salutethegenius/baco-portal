@@ -688,7 +688,7 @@ export default function BacoConference2025() {
                         className="font-semibold text-baco-primary"
                         data-testid="time-day1-dfnbp-sector-spotlight"
                       >
-                        1:10 - 1:50 PM
+                        4:10 - 4:50 PM
                       </span>
                     </div>
                     <div className="flex-1">
@@ -917,7 +917,7 @@ export default function BacoConference2025() {
                         className="font-semibold text-baco-primary"
                         data-testid="time-day1-presidents-round-table"
                       >
-                        4:10 - 4:50 PM
+                        1:10 - 1:50 PM
                       </span>
                     </div>
                     <div className="flex-1">
