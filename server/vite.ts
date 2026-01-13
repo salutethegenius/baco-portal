@@ -71,12 +71,19 @@ export function serveStatic(app: Express) {
   // Build output is in dist/public (from vite.config.ts)
   // Try multiple possible paths for different deployment environments
   const possiblePaths = [
-    path.resolve(import.meta.dirname, "..", "dist", "public"),
-    path.resolve(process.cwd(), "dist", "public"),
-    path.resolve(process.cwd(), ".vercel", "output", "static"),
-    path.resolve(import.meta.dirname, "..", ".vercel", "output", "static"),
+    // Public directory (Vercel serves this automatically, but we can also serve it)
     path.resolve(process.cwd(), "public"),
     path.resolve(import.meta.dirname, "..", "public"),
+    // Vercel serverless function context (api/ directory)
+    path.resolve(import.meta.dirname, "..", "dist", "public"),
+    // Root context
+    path.resolve(process.cwd(), "dist", "public"),
+    // Vercel build output
+    path.resolve(process.cwd(), ".vercel", "output", "static"),
+    path.resolve(import.meta.dirname, "..", ".vercel", "output", "static"),
+    // Relative to api directory (where serverless function runs)
+    path.resolve(import.meta.dirname, "..", "..", "dist", "public"),
+    path.resolve(import.meta.dirname, "..", "..", "public"),
   ];
 
   console.log('Looking for static files in:', possiblePaths);
