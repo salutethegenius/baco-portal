@@ -45,14 +45,11 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
-      // Get directory - handle both bundled and unbundled code
-      const baseDir = typeof import.meta.dirname !== 'undefined' 
-        ? import.meta.dirname 
-        : process.cwd();
+      // Get directory - use process.cwd() for bundled code compatibility
+      const baseDir = process.cwd();
       
       const clientTemplate = path.resolve(
         baseDir,
-        "..",
         "client",
         "index.html",
       );
@@ -74,40 +71,19 @@ export async function setupVite(app: Express, server: Server) {
 
 export function serveStatic(app: Express) {
   // Build output is in dist/public (from vite.config.ts)
-  // Try multiple possible paths for different deployment environments
-  // In bundled code, import.meta.dirname might be undefined, so we use process.cwd() as fallback
-  let metaDirname: string | undefined;
-  try {
-    metaDirname = typeof import.meta.dirname !== 'undefined' ? import.meta.dirname : undefined;
-  } catch (e) {
-    // import.meta.dirname not available in bundled code
-    metaDirname = undefined;
-  }
-  
+  // Use process.cwd() for Railway and other deployment platforms
   const cwd = process.cwd();
   const possiblePaths: string[] = [
     // Railway/Standard deployment - dist/public (build output)
     path.resolve(cwd, "dist", "public"),
-    // Public directory (fallback, also used by Vercel)
+    // Public directory (fallback)
     path.resolve(cwd, "public"),
     // Vercel build output (for Vercel deployments)
     path.resolve(cwd, ".vercel", "output", "static"),
   ];
-  
-  // Only add paths with import.meta.dirname if it's available and different from cwd
-  if (metaDirname && metaDirname !== cwd) {
-    possiblePaths.push(
-      path.resolve(metaDirname, "..", "dist", "public"),
-      path.resolve(metaDirname, "..", "public"),
-      path.resolve(metaDirname, "..", ".vercel", "output", "static"),
-      path.resolve(metaDirname, "..", "..", "dist", "public"),
-      path.resolve(metaDirname, "..", "..", "public"),
-    );
-  }
 
   console.log('Looking for static files in:', possiblePaths);
-  console.log('Current working directory:', process.cwd());
-  console.log('__dirname equivalent:', import.meta.dirname);
+  console.log('Current working directory:', cwd);
 
   let distPath: string | null = null;
   for (const possiblePath of possiblePaths) {
