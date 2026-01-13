@@ -51,15 +51,29 @@ CREATE DATABASE baco_dev;
 cp .env.example .env
 ```
 
-2. Edit `.env` with your local PostgreSQL credentials:
+2. Edit `.env` with your configuration:
 ```env
+# Database
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/baco_dev
-PGHOST=localhost
-PGPORT=5432
-PGUSER=postgres
-PGPASSWORD=your_password
-PGDATABASE=baco_dev
+
+# Session
 SESSION_SECRET=generate_a_random_32_char_string_here
+
+# Supabase Storage (S3-compatible)
+SUPABASE_STORAGE_ENDPOINT=https://ppfgonxjzuesetskxxei.storage.supabase.co/storage/v1/s3
+SUPABASE_STORAGE_REGION=us-west-2
+SUPABASE_STORAGE_ACCESS_KEY=your_access_key_here
+SUPABASE_STORAGE_SECRET_KEY=your_secret_key_here
+SUPABASE_STORAGE_BUCKET=documents
+
+# SendGrid Email (optional for development)
+SENDGRID_API_KEY=your_sendgrid_api_key_here
+SENDGRID_FROM_EMAIL=noreply@baco-bahamas.com
+
+# Application
+APP_URL=http://localhost:5000
+NODE_ENV=development
+PORT=5000
 ```
 
 To generate a session secret:

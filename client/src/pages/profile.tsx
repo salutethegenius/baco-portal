@@ -24,6 +24,17 @@ const profileSchema = z.object({
   address: z.string().optional(),
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters long"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -93,6 +104,121 @@ export default function Profile() {
     }
   };
 
+  const ChangePasswordForm = () => {
+    const passwordForm = useForm<ChangePasswordFormData>({
+      resolver: zodResolver(changePasswordSchema),
+      defaultValues: {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      },
+    });
+
+    const changePasswordMutation = useMutation({
+      mutationFn: async (data: ChangePasswordFormData) => {
+        const response = await apiRequest("POST", "/api/auth/change-password", {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to change password");
+        }
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been changed successfully.",
+        });
+        passwordForm.reset();
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Change Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+
+    const handlePasswordSubmit = (data: ChangePasswordFormData) => {
+      changePasswordMutation.mutate(data);
+    };
+
+    return (
+      <Form {...passwordForm}>
+        <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-6">
+          <FormField
+            control={passwordForm.control}
+            name="currentPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Enter current password"
+                    {...field}
+                    data-testid="input-current-password"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={passwordForm.control}
+            name="newPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>New Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Enter new password (min. 8 characters)"
+                    {...field}
+                    data-testid="input-new-password"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={passwordForm.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm New Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Confirm new password"
+                    {...field}
+                    data-testid="input-confirm-password"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            disabled={changePasswordMutation.isPending}
+            className="bg-baco-primary hover:bg-baco-secondary"
+            data-testid="button-change-password"
+          >
+            {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+          </Button>
+        </form>
+      </Form>
+    );
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -106,6 +232,7 @@ export default function Profile() {
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList>
             <TabsTrigger value="profile" data-testid="tab-profile">Profile Information</TabsTrigger>
+            <TabsTrigger value="password" data-testid="tab-password">Change Password</TabsTrigger>
             <TabsTrigger value="membership" data-testid="tab-membership">Membership</TabsTrigger>
             <TabsTrigger value="payments" data-testid="tab-payments">Payment History</TabsTrigger>
           </TabsList>
@@ -262,6 +389,17 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="password">
+            <Card>
+              <CardHeader>
+                <CardTitle>Change Password</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChangePasswordForm />
               </CardContent>
             </Card>
           </TabsContent>

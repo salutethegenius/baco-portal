@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
+import { sendRegistrationConfirmationEmail, sendPasswordResetEmail } from "./email";
 
 declare global {
   namespace Express {
@@ -46,7 +47,8 @@ export function setupAuth(app: Express) {
     store: sessionStore,
     cookie: {
       httpOnly: true,
-      secure: false, // Set to false for development
+      secure: process.env.NODE_ENV === 'production', // Secure cookies in production
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   };
@@ -112,6 +114,11 @@ export function setupAuth(app: Express) {
         membershipStatus: "pending",
       });
 
+      // Send registration confirmation email (don't block on error)
+      sendRegistrationConfirmationEmail(user.email, `${user.firstName} ${user.lastName}`).catch((err) => {
+        console.error('Failed to send registration confirmation email:', err);
+      });
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json({
@@ -123,9 +130,17 @@ export function setupAuth(app: Express) {
           isAdmin: user.isAdmin,
         });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      console.error("Registration error details:", {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      });
+      res.status(500).json({ 
+        message: "Registration failed",
+        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      });
     }
   });
 

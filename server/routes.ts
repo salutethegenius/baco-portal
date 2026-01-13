@@ -5,6 +5,8 @@ import { setupAuth, isAuthenticated } from "./auth";
 import { insertEventSchema, insertDocumentSchema, insertMessageSchema, updateEventRegistrationAdminSchema } from "@shared/schema";
 import { z } from "zod";
 import QRCode from "qrcode";
+import { SupabaseStorageService } from "./awsStorage";
+import { sendEventRegistrationConfirmationEmail, sendDocumentApprovalEmail, sendDocumentRejectionEmail } from "./email";
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -35,6 +37,9 @@ const apiEventSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
+
+  // Initialize storage service
+  const storageService = new SupabaseStorageService();
 
   // Auth routes are now handled in auth.ts
 
@@ -335,10 +340,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Registration created successfully:', registration.id);
+      
+      // Send event registration confirmation email (don't block on error)
+      if (event) {
+        sendEventRegistrationConfirmationEmail(
+          registration.email,
+          { title: event.title, startDate: event.startDate, location: event.location || undefined },
+          { firstName: registration.firstName, lastName: registration.lastName, registrationType: registration.registrationType || undefined }
+        ).catch((err) => {
+          console.error('Failed to send event registration confirmation email:', err);
+        });
+      }
+      
       res.status(201).json({ ...registration, redirectUrl });
     } catch (error: any) {
       console.error("Error creating event registration:", error);
       res.status(500).json({ message: "Failed to create event registration: " + error.message });
+    }
+  });
+
+  // Storage/Upload routes
+  app.post('/api/objects/upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const { fileType } = req.body;
+      const { uploadURL, objectPath } = await storageService.getUploadURL(fileType);
+      res.json({ uploadURL, objectPath });
+    } catch (error: any) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
     }
   });
 
@@ -351,6 +380,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching documents:", error);
       res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  app.put('/api/documents/upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { fileName, fileType, fileSize, objectURL, category } = req.body;
+
+      if (!objectURL) {
+        return res.status(400).json({ message: "Object URL is required" });
+      }
+
+      // Extract object path from URL if it's a full URL, otherwise use as-is
+      let objectPath = objectURL;
+      if (objectURL.startsWith('http')) {
+        // Extract path from Supabase URL or use the objectPath if provided
+        const urlObj = new URL(objectURL);
+        objectPath = urlObj.pathname.split('/').slice(-2).join('/'); // Get last two path segments
+      }
+
+      const document = await storage.createDocument({
+        userId,
+        fileName: fileName || 'Uploaded Document',
+        fileType: fileType || 'application/octet-stream',
+        fileSize: fileSize || 0,
+        objectPath: objectPath,
+        category: category || 'other',
+      });
+
+      res.json(document);
+    } catch (error: any) {
+      console.error("Error creating document:", error);
+      res.status(500).json({ message: "Failed to create document: " + error.message });
     }
   });
 
@@ -708,8 +770,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { status } = req.body;
+      const { status, reason } = req.body;
       const document = await storage.updateDocumentStatus(req.params.id, status, userId);
+      
+      // Send email notification based on status
+      const docUser = await storage.getUser(document.userId);
+      if (docUser?.email) {
+        if (status === 'approved') {
+          sendDocumentApprovalEmail(docUser.email, { fileName: document.fileName, category: document.category || undefined }).catch((err) => {
+            console.error('Failed to send document approval email:', err);
+          });
+        } else if (status === 'rejected') {
+          sendDocumentRejectionEmail(docUser.email, { fileName: document.fileName, category: document.category || undefined }, reason).catch((err) => {
+            console.error('Failed to send document rejection email:', err);
+          });
+        }
+      }
+      
       res.json(document);
     } catch (error) {
       console.error("Error updating document status:", error);
@@ -832,23 +909,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Temporary endpoint to make current user admin (for testing)
-  app.post('/api/make-me-admin', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      // Get existing user and update admin status
-      const existingUser = await storage.getUser(userId);
-      if (!existingUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const user = await storage.updateUser(userId, { isAdmin: true });
-      res.json({ message: "You are now an admin", user });
-    } catch (error) {
-      console.error("Error making user admin:", error);
-      res.status(500).json({ message: "Failed to make user admin" });
-    }
-  });
 
   // Endpoint to create/seed the BACO Conference 2025 event
   app.post('/api/seed-baco-conference-2025', isAuthenticated, async (req: any, res) => {

@@ -18,6 +18,8 @@ import PublicEvent from "@/pages/public-event";
 import BacoConference2025 from "@/pages/baco-conference-2025";
 import MemberRegistration from "@/pages/member-registration";
 import EventRegistration from "@/pages/event-registration";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,6 +41,8 @@ function Router() {
       <Route path="/events/:slug" component={PublicEvent} />
       <Route path="/baco-conference-2025" component={BacoConference2025} />
       <Route path="/member-registration" component={MemberRegistration} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
 
       {/* Authentication route */}
       <Route path="/auth" component={AuthPage} />
