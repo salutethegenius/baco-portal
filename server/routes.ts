@@ -137,26 +137,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
-      console.log("🚀 Event creation request received");
-      console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
-      console.log("👤 User ID:", req.user.id);
-
       const userId = req.user.id;
       const user = await storage.getUser(userId);
 
       if (!user?.isAdmin) {
-        console.error("❌ Non-admin user attempted to create event:", { userId, userIsAdmin: user?.isAdmin });
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      console.log("✅ Admin user verified:", { userId, email: user.email });
-
-      console.log("🔄 Parsing event data...");
       const eventData = apiEventSchema.parse(req.body);
-      console.log("✅ Event data parsed successfully:", eventData);
-
       const slug = eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      console.log("🔗 Generated slug:", slug);
 
       const eventToCreate = {
         ...eventData,
@@ -164,33 +153,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         slug,
       };
 
-      console.log("📝 Final event data to create:", eventToCreate);
-      console.log("🔄 Creating event in database...");
-
       const event = await storage.createEvent(eventToCreate);
-      console.log("✅ Event created successfully:", event);
-
       res.json(event);
     } catch (error: any) {
-      console.error("❌ Error creating event:", {
-        error: error.message,
-        stack: error.stack
-      });
-
       if (error.name === 'ZodError') {
-        console.error("❌ Validation errors:", error.errors);
         return res.status(400).json({
           message: "Validation error",
-          errors: error.errors,
-          receivedData: req.body
+          errors: error.errors
         });
       }
 
-      res.status(500).json({
-        message: "Failed to create event",
-        error: error?.message || 'Unknown error',
-        details: error?.stack
-      });
+      console.error("Error creating event:", error);
+      res.status(500).json({ message: "Failed to create event" });
     }
   });
 
@@ -249,12 +223,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public event registration endpoint (works for both authenticated and non-authenticated users)
   app.post("/api/event-registrations", async (req, res) => {
     try {
-      console.log('Event registration request received:', req.body);
       const { eventId, fullName, email, companyName, position, notes, phone, registrationType, paymentMethod, paymentAmount } = req.body;
 
       // Validate required fields
       if (!eventId || !fullName || !email) {
-        console.log('Missing required fields:', { eventId, fullName, email });
         return res.status(400).json({ message: "Missing required fields: eventId, fullName, email" });
       }
 
@@ -266,7 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        console.log('Invalid email format:', email);
         return res.status(400).json({ message: "Invalid email format" });
       }
 
@@ -277,23 +248,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate event exists and is public
-      console.log('Fetching event:', eventId);
       const event = await storage.getEvent(eventId);
       if (!event) {
-        console.log('Event not found:', eventId);
         return res.status(404).json({ message: "Event not found" });
       }
 
       if (!event.isPublic) {
-        console.log('Event is not public:', eventId);
         return res.status(403).json({ message: "Event is not public" });
       }
 
-      console.log('Event found:', { id: event.id, title: event.title, currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
-
       // Check if event is full
       if (event.maxAttendees && (event.currentAttendees || 0) >= event.maxAttendees) {
-        console.log('Event is full:', { currentAttendees: event.currentAttendees, maxAttendees: event.maxAttendees });
         return res.status(400).json({ message: "Event is full" });
       }
 
@@ -301,7 +266,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId) {
         const existingRegistration = await storage.getUserEventRegistration(userId, eventId);
         if (existingRegistration) {
-          console.log('User already registered:', { userId, eventId });
           return res.status(200).json({ 
             ...existingRegistration, 
             alreadyRegistered: true,
@@ -312,7 +276,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check for duplicate registration by email for non-authenticated users
         const existingRegistration = await storage.findEventRegistrationByEmail(eventId, email);
         if (existingRegistration) {
-          console.log('Duplicate registration attempt by email:', { eventId, email });
           return res.status(200).json({ 
             ...existingRegistration, 
             alreadyRegistered: true,
@@ -321,10 +284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log('Creating registration...');
       const registration = await storage.createEventRegistration({
         eventId,
-        userId, // Will be null for non-authenticated users, or user ID for authenticated users
+        userId,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
@@ -341,15 +303,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle redirects based on payment method
       let redirectUrl = null;
       if (paymentMethod === "paylanes") {
-        // Assuming Paylanes has a specific URL structure or API endpoint
-        // This is a placeholder and needs to be replaced with the actual Paylanes integration
         redirectUrl = `https://paylanes.com/pay?amount=${registration.paymentAmount}&reference=${registration.id}`;
-      } else if (paymentMethod === "stripe") {
-        // Placeholder for Stripe integration
-        // redirectUrl = `/stripe-checkout/${registration.id}`;
       }
-
-      console.log('Registration created successfully:', registration.id);
       
       // Send event registration confirmation email (don't block on error)
       if (event) {
@@ -357,15 +312,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           registration.email,
           { title: event.title, startDate: event.startDate instanceof Date ? event.startDate.toISOString() : event.startDate, location: event.location || undefined },
           { firstName: registration.firstName, lastName: registration.lastName, registrationType: registration.registrationType || undefined }
-        ).catch((err) => {
-          console.error('Failed to send event registration confirmation email:', err);
-        });
+        ).catch(() => {});
       }
       
       res.status(201).json({ ...registration, redirectUrl });
     } catch (error: any) {
       console.error("Error creating event registration:", error);
-      res.status(500).json({ message: "Failed to create event registration: " + error.message });
+      res.status(500).json({ message: "Failed to create event registration" });
     }
   });
 
@@ -619,21 +572,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: `${user.firstName} ${user.lastName}`,
       });
 
+      // Create a price for the subscription
+      const price = await stripe.prices.create({
+        currency: 'usd',
+        unit_amount: Math.round(parseFloat(user.annualFee || "350") * 100),
+        recurring: {
+          interval: 'year',
+        },
+        product_data: {
+          name: 'BACO Membership',
+        },
+      });
+
       // Create subscription
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
-        items: [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'BACO Membership',
-            },
-            unit_amount: Math.round(parseFloat(user.annualFee || "350") * 100),
-            recurring: {
-              interval: 'year',
-            },
-          },
-        }],
+        items: [{ price: price.id }],
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent'],
       });

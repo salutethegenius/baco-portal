@@ -177,51 +177,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    try {
-      // Check if user has any dependencies that would prevent deletion
-      const userEventRegistrations = await db
-        .select()
-        .from(eventRegistrations)
-        .where(eq(eventRegistrations.userId, userId));
-
-      const userDocuments = await db
-        .select()
-        .from(documents)
-        .where(eq(documents.userId, userId));
-
-      const userMessages = await db
-        .select()
-        .from(messages)
-        .where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
-
-      const userPayments = await db
-        .select()
-        .from(payments)
-        .where(eq(payments.userId, userId));
-
-      // Delete all related data first
-      if (userEventRegistrations.length > 0) {
-        await db.delete(eventRegistrations).where(eq(eventRegistrations.userId, userId));
-      }
-
-      if (userDocuments.length > 0) {
-        await db.delete(documents).where(eq(documents.userId, userId));
-      }
-
-      if (userMessages.length > 0) {
-        await db.delete(messages).where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
-      }
-
-      if (userPayments.length > 0) {
-        await db.delete(payments).where(eq(payments.userId, userId));
-      }
-
-      // Finally delete the user
-      await db.delete(users).where(eq(users.id, userId));
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      throw error;
-    }
+    // Delete all related data first
+    await db.delete(eventRegistrations).where(eq(eventRegistrations.userId, userId));
+    await db.delete(documents).where(eq(documents.userId, userId));
+    await db.delete(messages).where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
+    await db.delete(payments).where(eq(payments.userId, userId));
+    
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, userId));
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {
@@ -294,22 +257,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEvent(eventId: string): Promise<void> {
-    try {
-      // First check if event has registrations
-      const registrations = await db
-        .select()
-        .from(eventRegistrations)
-        .where(eq(eventRegistrations.eventId, eventId));
+    // First check if event has registrations
+    const registrations = await db
+      .select()
+      .from(eventRegistrations)
+      .where(eq(eventRegistrations.eventId, eventId));
 
-      if (registrations.length > 0) {
-        throw new Error(`Cannot delete event with ${registrations.length} existing registrations. Please contact registrants first.`);
-      }
-
-      await db.delete(events).where(eq(events.id, eventId));
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      throw error;
+    if (registrations.length > 0) {
+      throw new Error(`Cannot delete event with ${registrations.length} existing registrations. Please contact registrants first.`);
     }
+
+    await db.delete(events).where(eq(events.id, eventId));
   }
 
 
@@ -602,7 +560,6 @@ export class DatabaseStorage implements IStorage {
         isAdmin: true,
         membershipStatus: "active",
       });
-      console.log("Sample admin user created");
     }
 
     // Create sample events if none exist
@@ -669,7 +626,6 @@ export class DatabaseStorage implements IStorage {
       for (const event of sampleEvents) {
         await db.insert(events).values(event);
       }
-      console.log("Sample events created");
     }
   }
 }

@@ -49,7 +49,6 @@ async function sendEmail(to: string, subject: string, htmlBody: string, textBody
     });
 
     await sesClient.send(command);
-    console.log(`Email sent to ${to}`);
   } catch (error: any) {
     console.error('Error sending email:', error);
     throw new Error(`Failed to send email: ${error?.message || 'Unknown error'}`);

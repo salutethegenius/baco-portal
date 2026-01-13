@@ -82,36 +82,17 @@ export function serveStatic(app: Express) {
     path.resolve(cwd, ".vercel", "output", "static"),
   ];
 
-  console.log('Looking for static files in:', possiblePaths);
-  console.log('Current working directory:', cwd);
-
   let distPath: string | null = null;
   for (const possiblePath of possiblePaths) {
-    console.log(`Checking path: ${possiblePath}, exists: ${fs.existsSync(possiblePath)}`);
     if (fs.existsSync(possiblePath)) {
       distPath = possiblePath;
-      console.log(`Found static files at: ${distPath}`);
       break;
     }
   }
 
   if (!distPath) {
-    console.warn(
-      `Could not find the build directory. Tried: ${possiblePaths.join(", ")}`,
-    );
-    console.warn('Static file serving disabled - API routes will still work');
-    // Don't throw error, just log warning - routes will still work
+    // Don't throw error, just skip static serving - API routes will still work
     return;
-  }
-
-  console.log(`Serving static files from: ${distPath}`);
-  
-  // List files in the directory for debugging
-  try {
-    const files = fs.readdirSync(distPath);
-    console.log(`Static files found: ${files.slice(0, 10).join(", ")}${files.length > 10 ? "..." : ""}`);
-  } catch (e) {
-    console.warn('Could not list static files:', e);
   }
 
   app.use(express.static(distPath, { 
@@ -123,11 +104,9 @@ export function serveStatic(app: Express) {
   // fall through to index.html if the file doesn't exist (SPA routing)
   app.use("*", (_req, res) => {
     const indexPath = path.resolve(distPath!, "index.html");
-    console.log(`Serving index.html from: ${indexPath}`);
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      console.warn(`index.html not found at: ${indexPath}`);
       res.status(404).json({ message: "Not found", path: _req.path });
     }
   });

@@ -113,42 +113,22 @@ export default function Admin() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      console.log("🚀 Starting event creation with data:", data);
-
       const eventData = {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
       };
 
-      console.log("📝 Event data being sent to server:", eventData);
-
-      try {
-        const response = await apiRequest("POST", "/api/events", eventData);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ Event creation request failed:", {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText
-          });
-          throw new Error(`Failed to create event: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-
-        const event = await response.json();
-        console.log("✅ Event created successfully:", event);
-        return event;
-      } catch (error: any) {
-        console.error("❌ Event creation failed:", {
-          error: error.message,
-          stack: error.stack
-        });
-        throw error;
+      const response = await apiRequest("POST", "/api/events", eventData);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create event: ${response.status} ${response.statusText} - ${errorText}`);
       }
+
+      return await response.json();
     },
-    onSuccess: (event) => {
-      console.log("🎉 Event creation completed successfully:", event);
+    onSuccess: () => {
       toast({
         title: "Event Created",
         description: "The event has been created successfully.",
@@ -158,11 +138,6 @@ export default function Admin() {
       form.reset();
     },
     onError: (error: Error) => {
-      console.error("❌ Event creation mutation error:", {
-        error: error.message,
-        stack: error.stack
-      });
-      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -177,7 +152,7 @@ export default function Admin() {
       
       toast({
         title: "Creation Failed",
-        description: `${error.message}`,
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -1297,8 +1272,7 @@ export default function Admin() {
                                 variant: "destructive",
                               });
                             }
-                          } catch (error) {
-                            console.error('Error seeding event:', error);
+                          } catch {
                             toast({
                               title: "Error",
                               description: "Failed to seed event",

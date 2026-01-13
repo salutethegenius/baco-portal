@@ -11,28 +11,48 @@ import { Separator } from "@/components/ui/separator";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  price: string;
+  maxAttendees: number;
+  currentAttendees: number;
+}
+
+interface Message {
+  id: string;
+  subject: string;
+  content: string;
+  isRead: boolean;
+  sentAt: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const { data: events = [] } = useQuery({
+  const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
 
-  const { data: myRegistrations = [] } = useQuery({
+  const { data: myRegistrations = [] } = useQuery<any[]>({
     queryKey: ["/api/event-registrations/my"],
   });
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ["/api/messages/my"],
   });
 
-  const { data: unreadCount } = useQuery({
+  const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ["/api/messages/unread-count"],
   });
 
   const upcomingEvents = events
-    .filter((event: any) => new Date(event.startDate) > new Date())
+    .filter((event) => new Date(event.startDate) > new Date())
     .slice(0, 3);
 
   const recentMessages = messages.slice(0, 3);
@@ -191,9 +211,9 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Recent Messages</CardTitle>
-                  {unreadCount?.count > 0 && (
+                  {(unreadCount?.count ?? 0) > 0 && (
                     <Badge variant="destructive" data-testid="badge-unread-count">
-                      {unreadCount.count}
+                      {unreadCount?.count}
                     </Badge>
                   )}
                 </div>

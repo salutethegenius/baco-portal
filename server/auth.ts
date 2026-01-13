@@ -131,12 +131,7 @@ export function setupAuth(app: Express) {
         });
       });
     } catch (error: any) {
-      console.error("Registration error:", error);
-      console.error("Registration error details:", {
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name
-      });
+      console.error("Registration error:", error?.message);
       res.status(500).json({ 
         message: "Registration failed",
         error: process.env.NODE_ENV === 'development' ? error?.message : undefined
