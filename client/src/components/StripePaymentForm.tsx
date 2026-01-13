@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, CreditCard, Lock } from "lucide-react";
 
 interface StripePaymentFormProps {
   clientSecret: string;
@@ -31,6 +31,7 @@ export default function StripePaymentForm({
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isElementReady, setIsElementReady] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,68 +102,74 @@ export default function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="p-4 bg-gray-50 rounded-lg mb-4">
-        <p className="text-sm text-gray-600">
-          <strong>Amount:</strong> ${amount} BSD
-        </p>
-        <p className="text-sm text-gray-600">
-          <strong>Description:</strong> {description}
-        </p>
+      {/* Payment Element Container */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+          <CreditCard className="h-4 w-4" />
+          <span>Enter your card details</span>
+        </div>
+        
+        {/* Loading state while Stripe loads */}
+        {!isElementReady && (
+          <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center justify-center gap-2 text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading payment form...</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Stripe PaymentElement */}
+        <div className={!isElementReady ? "hidden" : ""}>
+          <PaymentElement
+            onReady={() => setIsElementReady(true)}
+            options={{
+              layout: {
+                type: "accordion",
+                defaultCollapsed: false,
+                radios: false,
+                spacedAccordionItems: true,
+              },
+            }}
+          />
+        </div>
       </div>
 
-      <PaymentElement
-        options={{
-          layout: "tabs",
-        }}
-      />
-
+      {/* Submit Button */}
       <Button
         type="submit"
-        disabled={!stripe || isProcessing}
-        className="w-full bg-baco-primary hover:bg-baco-secondary"
+        disabled={!stripe || !elements || isProcessing || !isElementReady}
+        className="w-full bg-baco-primary hover:bg-baco-secondary disabled:bg-gray-400"
         data-testid="button-pay-now"
       >
         {isProcessing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
+            Processing payment...
           </>
         ) : (
-          `Pay $${amount} BSD`
+          <>
+            <Lock className="mr-2 h-4 w-4" />
+            Pay ${amount} BSD
+          </>
         )}
       </Button>
 
-      <div className="text-center">
-        <p className="text-xs text-gray-500">
-          Payments are securely processed by Stripe.
-        </p>
-        <div className="flex items-center justify-center gap-2 mt-2">
-          <img
-            src="https://cdn.jsdelivr.net/gh/creativetimofficial/public-assets@master/logos/visa.jpg"
-            alt="Visa"
-            className="h-6"
-          />
-          <img
-            src="https://cdn.jsdelivr.net/gh/creativetimofficial/public-assets@master/logos/mastercard.png"
-            alt="Mastercard"
-            className="h-6"
-          />
-          <img
-            src="https://cdn.jsdelivr.net/gh/creativetimofficial/public-assets@master/logos/amex.png"
-            alt="Amex"
-            className="h-6"
-          />
-        </div>
+      {/* Security Notice */}
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+        <Lock className="h-3 w-3" />
+        <span>Secured by Stripe. Your card details are encrypted.</span>
       </div>
 
       {/* Test mode indicator */}
       {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith("pk_test") && (
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-xs text-yellow-800 font-medium">Test Mode</p>
+          <p className="text-xs text-yellow-800 font-medium mb-1">🧪 Test Mode</p>
           <p className="text-xs text-yellow-700">
-            Use card: <code className="bg-yellow-100 px-1">4242 4242 4242 4242</code>
-            <br />
-            Any future expiry, any CVC, any postal code.
+            Use test card: <code className="bg-yellow-100 px-1 py-0.5 rounded font-mono">4242 4242 4242 4242</code>
+          </p>
+          <p className="text-xs text-yellow-700 mt-1">
+            Expiry: any future date • CVC: any 3 digits • ZIP: any
           </p>
         </div>
       )}
