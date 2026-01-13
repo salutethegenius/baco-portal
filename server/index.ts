@@ -8,9 +8,21 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 
-// Security middleware
+// Security middleware with Stripe-compatible CSP
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://*.supabase.co"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  } : false,
 }));
 
 // Rate limiting
