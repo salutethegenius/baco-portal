@@ -7,6 +7,16 @@ import { z } from "zod";
 import QRCode from "qrcode";
 import { SupabaseStorageService } from "./awsStorage";
 import { sendEventRegistrationConfirmationEmail, sendDocumentApprovalEmail, sendDocumentRejectionEmail } from "./email";
+import Stripe from "stripe";
+
+// Initialize Stripe (optional - graceful fallback if keys not set)
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+if (!stripe) {
+  console.warn("⚠️ STRIPE_SECRET_KEY not set - payment processing will be unavailable");
+}
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -499,9 +509,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe payment routes - temporarily commented out
-  /*
+  // Stripe payment routes
   app.post('/api/create-payment-intent', isAuthenticated, async (req: any, res) => {
+    if (!stripe) {
+      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
+    }
+
     try {
       const { amount, type, eventId, description } = req.body;
       const userId = req.user.id;
@@ -535,8 +548,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Confirm payment and update status
+  app.post('/api/confirm-payment', isAuthenticated, async (req: any, res) => {
+    if (!stripe) {
+      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
+    }
+
+    try {
+      const { paymentIntentId } = req.body;
+      const userId = req.user.id;
+
+      // Retrieve payment intent to verify status
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.status === 'succeeded') {
+        // Update payment record
+        await storage.updatePaymentByStripeId(paymentIntentId, 'completed');
+
+        // If this is a membership payment, update user status
+        if (paymentIntent.metadata.type === 'subscription' || paymentIntent.metadata.type === 'membership') {
+          await storage.updateUserMembershipStatus(userId, 'active');
+        }
+
+        res.json({ success: true, status: paymentIntent.status });
+      } else {
+        res.json({ success: false, status: paymentIntent.status });
+      }
+    } catch (error: any) {
+      console.error("Error confirming payment:", error);
+      res.status(500).json({ message: "Error confirming payment: " + error.message });
+    }
+  });
+
+  // Check if Stripe is available
+  app.get('/api/stripe-status', (req, res) => {
+    res.json({ available: !!stripe });
+  });
+
   // Stripe subscription for membership fees
   app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
+    if (!stripe) {
+      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
+    }
+
     try {
       const userId = req.user.id;
       let user = await storage.getUser(userId);
@@ -595,16 +649,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error creating subscription:", error);
       res.status(500).json({ message: "Error creating subscription: " + error.message });
     }
-  });
-  */
-
-  // Temporary simple payment routes for testing
-  app.post('/api/create-payment-intent', isAuthenticated, async (req: any, res) => {
-    res.status(503).json({ message: "Payment processing temporarily unavailable - Stripe keys needed" });
-  });
-
-  app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
-    res.status(503).json({ message: "Subscription processing temporarily unavailable - Stripe keys needed" });
   });
 
 

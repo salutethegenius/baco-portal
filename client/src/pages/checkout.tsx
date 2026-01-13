@@ -1,16 +1,24 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import Layout from "@/components/Layout";
+import StripePaymentForm from "@/components/StripePaymentForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { format } from "date-fns";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
-// Payment forms for external payment processing
+// Initialize Stripe with publishable key
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+// Payment unavailable fallback form
 const PaymentUnavailableForm = ({ type, amount, description }: any) => {
   return (
     <div className="space-y-6">
@@ -50,15 +58,40 @@ const PaymentUnavailableForm = ({ type, amount, description }: any) => {
 
 export default function Checkout() {
   const params = useParams();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   
   const type = params.type as string;
   const eventId = params.id as string;
 
+  // Check if Stripe is available
+  const { data: stripeStatus } = useQuery({
+    queryKey: ["/api/stripe-status"],
+  });
+
   const { data: event } = useQuery({
     queryKey: ["/api/events", eventId],
     enabled: type === "event" && !!eventId,
+  });
+
+  // Create payment intent mutation
+  const createPaymentIntent = useMutation({
+    mutationFn: async (data: { amount: number; type: string; description: string; eventId?: string }) => {
+      const response = await apiRequest("POST", "/api/create-payment-intent", data);
+      return response;
+    },
+    onSuccess: (data) => {
+      setClientSecret(data.clientSecret);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initialize payment",
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
@@ -78,6 +111,24 @@ export default function Checkout() {
     }
   }, [type, event]);
 
+  // Create payment intent when payment info is ready and Stripe is available
+  useEffect(() => {
+    if (paymentInfo && stripeStatus?.available && !clientSecret) {
+      createPaymentIntent.mutate({
+        amount: parseFloat(paymentInfo.amount),
+        type: paymentInfo.type,
+        description: paymentInfo.description,
+        eventId: eventId || undefined,
+      });
+    }
+  }, [paymentInfo, stripeStatus?.available]);
+
+  const handlePaymentSuccess = () => {
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 2000);
+  };
+
   if (!paymentInfo) {
     return (
       <Layout>
@@ -91,12 +142,18 @@ export default function Checkout() {
     );
   }
 
+  const isStripeAvailable = stripeStatus?.available && stripePromise;
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Payment</h1>
-          <p className="text-gray-600">Payment processing temporarily unavailable</p>
+          <p className="text-gray-600">
+            {isStripeAvailable 
+              ? "Secure payment processing powered by Stripe" 
+              : "Payment processing temporarily unavailable"}
+          </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-5">
@@ -106,7 +163,40 @@ export default function Checkout() {
                 <CardTitle>Payment Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <PaymentUnavailableForm {...paymentInfo} />
+                {isStripeAvailable && clientSecret ? (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: "stripe",
+                        variables: {
+                          colorPrimary: "#1e3a5f",
+                          colorBackground: "#ffffff",
+                          colorText: "#1f2937",
+                          colorDanger: "#ef4444",
+                          fontFamily: "Inter, system-ui, sans-serif",
+                          borderRadius: "8px",
+                        },
+                      },
+                    }}
+                  >
+                    <StripePaymentForm
+                      clientSecret={clientSecret}
+                      amount={paymentInfo.amount}
+                      description={paymentInfo.description}
+                      type={paymentInfo.type === "subscription" ? "membership" : "event"}
+                      onSuccess={handlePaymentSuccess}
+                    />
+                  </Elements>
+                ) : isStripeAvailable && !clientSecret ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-baco-primary mx-auto mb-4" />
+                    <p className="text-gray-600">Initializing payment...</p>
+                  </div>
+                ) : (
+                  <PaymentUnavailableForm {...paymentInfo} />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -158,15 +248,29 @@ export default function Checkout() {
                   </span>
                 </div>
 
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600 mt-1" />
-                    <div className="text-sm text-gray-600">
-                      <p className="font-medium text-gray-900 mb-1">Payment Processing Unavailable</p>
-                      <p>Please contact BACO administration to complete your payment.</p>
+                {isStripeAvailable ? (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <svg className="h-5 w-5 text-green-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <div className="text-sm text-gray-600">
+                        <p className="font-medium text-green-800 mb-1">Secure Payment</p>
+                        <p className="text-green-700">Your payment information is encrypted and secure.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 mt-1" />
+                      <div className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 mb-1">Payment Processing Unavailable</p>
+                        <p>Please contact BACO administration to complete your payment.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

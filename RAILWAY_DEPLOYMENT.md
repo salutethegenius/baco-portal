@@ -42,6 +42,10 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_SES_REGION=us-east-1
 AWS_SES_FROM_EMAIL=noreply@baco-portal.com
 
+# Stripe Payment Processing
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+
 # Application
 APP_URL=https://your-app-name.railway.app
 NODE_ENV=production
@@ -129,4 +133,5 @@ The free tier is usually sufficient for small to medium applications.
 - [ ] API endpoints are working
 - [ ] Authentication is working
 - [ ] Email sending is configured
+- [ ] Stripe payments working (use test card: 4242 4242 4242 4242)
 - [ ] Custom domain is set (optional)

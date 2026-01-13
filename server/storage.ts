@@ -71,6 +71,7 @@ export interface IStorage {
   getUserPayments(userId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string): Promise<Payment>;
+  updatePaymentByStripeId(stripePaymentIntentId: string, status: string): Promise<Payment | undefined>;
 
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -519,6 +520,15 @@ export class DatabaseStorage implements IStorage {
       .update(payments)
       .set({ status })
       .where(eq(payments.id, id))
+      .returning();
+    return payment;
+  }
+
+  async updatePaymentByStripeId(stripePaymentIntentId: string, status: string): Promise<Payment | undefined> {
+    const [payment] = await db
+      .update(payments)
+      .set({ status })
+      .where(eq(payments.stripePaymentIntentId, stripePaymentIntentId))
       .returning();
     return payment;
   }
