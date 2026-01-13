@@ -345,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (event) {
         sendEventRegistrationConfirmationEmail(
           registration.email,
-          { title: event.title, startDate: event.startDate, location: event.location || undefined },
+          { title: event.title, startDate: event.startDate instanceof Date ? event.startDate.toISOString() : event.startDate, location: event.location || undefined },
           { firstName: registration.firstName, lastName: registration.lastName, registrationType: registration.registrationType || undefined }
         ).catch((err) => {
           console.error('Failed to send event registration confirmation email:', err);
