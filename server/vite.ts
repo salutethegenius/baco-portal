@@ -45,8 +45,13 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
+      // Get directory - handle both bundled and unbundled code
+      const baseDir = typeof import.meta.dirname !== 'undefined' 
+        ? import.meta.dirname 
+        : process.cwd();
+      
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        baseDir,
         "..",
         "client",
         "index.html",
@@ -70,20 +75,35 @@ export async function setupVite(app: Express, server: Server) {
 export function serveStatic(app: Express) {
   // Build output is in dist/public (from vite.config.ts)
   // Try multiple possible paths for different deployment environments
-  const possiblePaths = [
+  // In bundled code, import.meta.dirname might be undefined, so we use process.cwd() as fallback
+  let metaDirname: string | undefined;
+  try {
+    metaDirname = typeof import.meta.dirname !== 'undefined' ? import.meta.dirname : undefined;
+  } catch (e) {
+    // import.meta.dirname not available in bundled code
+    metaDirname = undefined;
+  }
+  
+  const cwd = process.cwd();
+  const possiblePaths: string[] = [
     // Railway/Standard deployment - dist/public (build output)
-    path.resolve(process.cwd(), "dist", "public"),
-    path.resolve(import.meta.dirname, "..", "dist", "public"),
+    path.resolve(cwd, "dist", "public"),
     // Public directory (fallback, also used by Vercel)
-    path.resolve(process.cwd(), "public"),
-    path.resolve(import.meta.dirname, "..", "public"),
+    path.resolve(cwd, "public"),
     // Vercel build output (for Vercel deployments)
-    path.resolve(process.cwd(), ".vercel", "output", "static"),
-    path.resolve(import.meta.dirname, "..", ".vercel", "output", "static"),
-    // Relative to api directory (where serverless function runs)
-    path.resolve(import.meta.dirname, "..", "..", "dist", "public"),
-    path.resolve(import.meta.dirname, "..", "..", "public"),
+    path.resolve(cwd, ".vercel", "output", "static"),
   ];
+  
+  // Only add paths with import.meta.dirname if it's available and different from cwd
+  if (metaDirname && metaDirname !== cwd) {
+    possiblePaths.push(
+      path.resolve(metaDirname, "..", "dist", "public"),
+      path.resolve(metaDirname, "..", "public"),
+      path.resolve(metaDirname, "..", ".vercel", "output", "static"),
+      path.resolve(metaDirname, "..", "..", "dist", "public"),
+      path.resolve(metaDirname, "..", "..", "public"),
+    );
+  }
 
   console.log('Looking for static files in:', possiblePaths);
   console.log('Current working directory:', process.cwd());
