@@ -125,7 +125,7 @@ export default function Checkout() {
 
   const handlePaymentSuccess = () => {
     setTimeout(() => {
-      navigate("/dashboard");
+      navigate("/");
     }, 2000);
   };
 
