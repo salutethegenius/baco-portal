@@ -80,7 +80,7 @@ export default function Checkout() {
   const createPaymentIntent = useMutation({
     mutationFn: async (data: { amount: number; type: string; description: string; eventId?: string }) => {
       const response = await apiRequest("POST", "/api/create-payment-intent", data);
-      return response;
+      return response.json();
     },
     onSuccess: (data) => {
       setClientSecret(data.clientSecret);
