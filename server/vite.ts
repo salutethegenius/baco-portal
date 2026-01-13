@@ -71,14 +71,13 @@ export function serveStatic(app: Express) {
   // Build output is in dist/public (from vite.config.ts)
   // Try multiple possible paths for different deployment environments
   const possiblePaths = [
-    // Public directory (Vercel serves this automatically, but we can also serve it)
+    // Railway/Standard deployment - dist/public (build output)
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(import.meta.dirname, "..", "dist", "public"),
+    // Public directory (fallback, also used by Vercel)
     path.resolve(process.cwd(), "public"),
     path.resolve(import.meta.dirname, "..", "public"),
-    // Vercel serverless function context (api/ directory)
-    path.resolve(import.meta.dirname, "..", "dist", "public"),
-    // Root context
-    path.resolve(process.cwd(), "dist", "public"),
-    // Vercel build output
+    // Vercel build output (for Vercel deployments)
     path.resolve(process.cwd(), ".vercel", "output", "static"),
     path.resolve(import.meta.dirname, "..", ".vercel", "output", "static"),
     // Relative to api directory (where serverless function runs)
