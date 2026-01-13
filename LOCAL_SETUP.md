@@ -66,9 +66,11 @@ SUPABASE_STORAGE_ACCESS_KEY=your_access_key_here
 SUPABASE_STORAGE_SECRET_KEY=your_secret_key_here
 SUPABASE_STORAGE_BUCKET=documents
 
-# SendGrid Email (optional for development)
-SENDGRID_API_KEY=your_sendgrid_api_key_here
-SENDGRID_FROM_EMAIL=noreply@baco-bahamas.com
+# AWS SES Email (optional for development)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_SES_REGION=us-east-1
+AWS_SES_FROM_EMAIL=noreply@baco-portal.com
 
 # Application
 APP_URL=http://localhost:5000

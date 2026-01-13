@@ -26,9 +26,11 @@
    SUPABASE_STORAGE_SECRET_KEY=your_secret_key
    SUPABASE_STORAGE_BUCKET=documents
 
-   # SendGrid Email
-   SENDGRID_API_KEY=SG.your_api_key_here
-   SENDGRID_FROM_EMAIL=noreply@baco-bahamas.com
+   # AWS SES Email
+   AWS_ACCESS_KEY_ID=your_aws_access_key_id
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+   AWS_SES_REGION=us-east-1
+   AWS_SES_FROM_EMAIL=noreply@baco-portal.com
 
    # Application
    APP_URL=https://your-app.vercel.app
@@ -45,7 +47,7 @@
 
 - **Database**: Make sure your Supabase database is accessible from Vercel's IP ranges
 - **Storage**: Ensure the Supabase Storage bucket exists and is configured
-- **SendGrid**: Verify your sender email domain in SendGrid
+- **AWS SES**: Verify your sender email/domain in AWS SES console
 - **Build**: The build process runs `npm run build` automatically
 
 ## 🔧 Troubleshooting
@@ -65,9 +67,10 @@
 - Ensure bucket has proper CORS configuration
 
 ### Email Not Sending
-- Verify `SENDGRID_API_KEY` starts with `SG.`
-- Check sender email is verified in SendGrid
-- Review SendGrid activity logs
+- Verify `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set correctly
+- Check sender email is verified in AWS SES console
+- Ensure AWS credentials have SES send permissions
+- Review AWS SES sending quota and bounce/complaint rates
 
 ## 🔄 Updating
 

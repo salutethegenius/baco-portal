@@ -30,9 +30,11 @@ SUPABASE_STORAGE_ACCESS_KEY=your_access_key
 SUPABASE_STORAGE_SECRET_KEY=your_secret_key
 SUPABASE_STORAGE_BUCKET=documents
 
-# SendGrid Email (required for emails, optional for development)
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDGRID_FROM_EMAIL=noreply@baco-bahamas.com
+# AWS SES Email (required for emails, optional for development)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_SES_REGION=us-east-1
+AWS_SES_FROM_EMAIL=noreply@baco-portal.com
 
 # Application (required)
 APP_URL=http://localhost:5000  # or your production URL
@@ -48,12 +50,14 @@ PORT=5000
 4. Go to Settings → API → Storage Keys
 5. Copy the Access Key and Secret Key
 
-### Getting SendGrid API Key
+### Getting AWS SES Credentials
 
-1. Sign up at [SendGrid](https://sendgrid.com)
-2. Go to Settings → API Keys
-3. Create a new API key with "Mail Send" permissions
-4. Copy the API key (you'll only see it once!)
+1. Sign in to [AWS Console](https://console.aws.amazon.com)
+2. Go to IAM → Users → Create User (or use existing)
+3. Attach the `AmazonSESFullAccess` policy (or create a custom policy with SES send permissions)
+4. Go to Security Credentials → Create Access Key
+5. Copy the Access Key ID and Secret Access Key (you'll only see the secret once!)
+6. Verify your email/domain in SES Console → Verified Identities
 
 ### Generating Session Secret
 
@@ -68,7 +72,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 1. Start the dev server: `npm run dev`
 2. Go to `/forgot-password`
 3. Enter an email address
-4. Check your email (or logs if SendGrid isn't configured)
+4. Check your email (or logs if AWS SES isn't configured)
 5. Click the reset link
 6. Set a new password
 
@@ -92,7 +96,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 - [ ] All environment variables configured in production
 - [ ] Database schema pushed to production database
-- [ ] SendGrid domain verified (for production emails)
+- [ ] AWS SES email/domain verified (for production emails)
 - [ ] Supabase storage bucket created and configured
 - [ ] Session secret is strong and unique
 - [ ] `NODE_ENV=production` set
@@ -151,8 +155,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ### Email Not Sending
 
-- Check SendGrid API key is correct
-- Verify SendGrid account is activated
+- Check AWS credentials are correct (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- Verify email/domain is verified in AWS SES console
+- Ensure AWS IAM user has SES send permissions
+- Check SES sending quota and bounce/complaint rates
 - Check email is not in spam
 - Review server logs for errors
 - Ensure `APP_URL` is correct for reset links
