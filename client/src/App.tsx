@@ -60,6 +60,7 @@ function Router() {
           <Route path="/documents" component={Documents} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
+          <Route path="/checkout/:type" component={Checkout} />
           <Route path="/checkout/:type/:id" component={Checkout} />
         </>
       )}
