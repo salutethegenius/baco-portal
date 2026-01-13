@@ -27,8 +27,14 @@ export function useAuth() {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all query cache
+      queryClient.clear();
+      // Reset auth user data
       queryClient.setQueryData(["/api/auth/user"], null);
-      window.location.href = "/";
+      // Force navigation after a brief delay to ensure session is cleared
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
   });
 

@@ -32,54 +32,68 @@ interface Message {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
 
+  // Only fetch data if user is authenticated
   const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+    enabled: !authLoading && !!user,
   });
 
   const { data: myRegistrations = [] } = useQuery<any[]>({
     queryKey: ["/api/event-registrations/my"],
+    enabled: !authLoading && !!user,
   });
 
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ["/api/messages/my"],
+    enabled: !authLoading && !!user,
   });
 
   const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ["/api/messages/unread-count"],
+    enabled: !authLoading && !!user,
+  });
+
+  const { data: documents = [] } = useQuery<any[]>({
+    queryKey: ["/api/documents/my"],
+    enabled: !authLoading && !!user,
+  });
+
+  const { data: activity = [] } = useQuery<any[]>({
+    queryKey: ["/api/activity/my"],
+    enabled: !authLoading && !!user,
   });
 
   const upcomingEvents = events
     .filter((event) => new Date(event.startDate) > new Date())
     .slice(0, 3);
 
-  const recentMessages = messages.slice(0, 3);
+  // Filter messages to show only those FROM admin (received messages)
+  const adminMessages = messages.filter((msg: any) => msg.fromUserId !== user?.id).slice(0, 3);
+  
+  // Calculate document counts
+  const documentCounts = {
+    approved: documents.filter((doc: any) => doc.status === 'approved').length,
+    pending: documents.filter((doc: any) => doc.status === 'pending').length,
+    rejected: documents.filter((doc: any) => doc.status === 'rejected').length,
+  };
+  const recentDocuments = documents.slice(0, 3);
 
-  const recentActivity = [
-    {
-      type: "payment",
-      message: "Membership payment processed successfully",
-      date: "2 days ago",
-      icon: "check",
-      color: "baco-success",
-    },
-    {
-      type: "document",
-      message: "Uploaded professional certificate",
-      date: "1 week ago",
-      icon: "file",
-      color: "baco-primary",
-    },
-    {
-      type: "event",
-      message: "Registered for Annual Compliance Conference 2024",
-      date: "2 weeks ago",
-      icon: "calendar",
-      color: "baco-accent",
-    },
-  ];
+  // Format activity dates
+  const formatActivityDate = (date: string) => {
+    const activityDate = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - activityDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return format(activityDate, 'MMM d, yyyy');
+  };
 
   return (
     <Layout>
@@ -141,30 +155,34 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flow-root">
-                  <ul className="-mb-8">
-                    {recentActivity.map((activity, index) => (
-                      <li key={index}>
-                        <div className="relative pb-8">
-                          {index !== recentActivity.length - 1 && (
-                            <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                          )}
-                          <div className="relative flex space-x-3">
-                            <div>
-                              <span className={`h-8 w-8 rounded-full bg-${activity.color} flex items-center justify-center ring-8 ring-white`}>
-                                <i className={`fas fa-${activity.icon} text-white text-xs`}></i>
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-900">{activity.message}</p>
-                              <p className="mt-0.5 text-xs text-gray-500">{activity.date}</p>
+                {activity.length > 0 ? (
+                  <div className="flow-root">
+                    <ul className="-mb-8">
+                      {activity.map((act, index) => (
+                        <li key={act.id || index}>
+                          <div className="relative pb-8">
+                            {index !== activity.length - 1 && (
+                              <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                            )}
+                            <div className="relative flex space-x-3">
+                              <div>
+                                <span className={`h-8 w-8 rounded-full bg-${act.color} flex items-center justify-center ring-8 ring-white`}>
+                                  <i className={`fas fa-${act.icon} text-white text-xs`}></i>
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-900">{act.message}</p>
+                                <p className="mt-0.5 text-xs text-gray-500">{formatActivityDate(act.timestamp || act.date)}</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No recent activity</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -206,6 +224,61 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            {/* My Documents */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>My Documents</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("/documents")}
+                    className="text-baco-primary hover:text-baco-secondary"
+                    data-testid="button-view-all-documents"
+                  >
+                    View All
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Approved</span>
+                    <Badge className="bg-green-100 text-green-800">{documentCounts.approved}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Pending</span>
+                    <Badge className="bg-yellow-100 text-yellow-800">{documentCounts.pending}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Rejected</span>
+                    <Badge className="bg-red-100 text-red-800">{documentCounts.rejected}</Badge>
+                  </div>
+                  <Separator className="my-3" />
+                  {recentDocuments.length > 0 ? (
+                    <div className="space-y-2">
+                      {recentDocuments.map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-900 truncate flex-1">{doc.fileName}</span>
+                          <Badge 
+                            className={`ml-2 ${
+                              doc.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              doc.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-2 text-sm">No documents uploaded</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Recent Messages */}
             <Card>
               <CardHeader>
@@ -219,8 +292,8 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="divide-y divide-gray-200">
-                {recentMessages.length > 0 ? (
-                  recentMessages.map((message: any) => (
+                {adminMessages.length > 0 ? (
+                  adminMessages.map((message: any) => (
                     <MessageCard key={message.id} message={message} />
                   ))
                 ) : (
@@ -266,9 +339,16 @@ export default function Dashboard() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Annual Fee</dt>
-                    <dd className="text-sm text-gray-900" data-testid="text-annual-fee">
-                      ${user?.annualFee || '350.00'} BSD
+                    <dt className="text-sm font-medium text-gray-500">Next Payment Due</dt>
+                    <dd className="text-sm text-gray-900" data-testid="text-next-payment-due">
+                      {(() => {
+                        const today = new Date();
+                        const thisYearFeb15 = new Date(today.getFullYear(), 1, 15); // Month is 0-indexed
+                        const nextPaymentDate = today > thisYearFeb15 
+                          ? new Date(today.getFullYear() + 1, 1, 15) 
+                          : thisYearFeb15;
+                        return format(nextPaymentDate, 'MMMM dd, yyyy');
+                      })()}
                     </dd>
                   </div>
                   <div>

@@ -25,6 +25,7 @@ import { useLocation } from "wouter";
 import ObjectUploader from "@/components/ObjectUploader";
 import { Award } from "lucide-react";
 import RegistrationAdminEdit from "@/components/RegistrationAdminEdit";
+import AdminMessagesTab from "@/components/AdminMessagesTab";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -438,6 +439,7 @@ export default function Admin() {
             <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
             <TabsTrigger value="landing-pages" data-testid="tab-landing-pages">Event Landing Pages</TabsTrigger>
             <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+            <TabsTrigger value="messages" data-testid="tab-messages">Messages</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -1407,6 +1409,10 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <AdminMessagesTab />
           </TabsContent>
         </Tabs>
       </div>

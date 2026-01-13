@@ -427,8 +427,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      let { toUserId, subject, content } = req.body;
+
+      // If member is sending and no toUserId provided, find an admin
+      if (!user?.isAdmin && !toUserId) {
+        const allUsers = await storage.getAllUsers();
+        const admin = allUsers.find(u => u.isAdmin);
+        if (!admin) {
+          return res.status(404).json({ message: "No administrator found" });
+        }
+        toUserId = admin.id;
+      }
+
+      // Validate recipient
+      const recipient = await storage.getUser(toUserId);
+      if (!recipient) {
+        return res.status(404).json({ message: "Recipient not found" });
+      }
+
+      // Members can only message admins, admins can message anyone
+      if (!user?.isAdmin && !recipient.isAdmin) {
+        return res.status(403).json({ message: "Members can only message administrators" });
+      }
+
       const messageData = insertMessageSchema.parse({
-        ...req.body,
+        toUserId,
+        subject,
+        content,
         fromUserId: userId,
       });
 
@@ -447,6 +473,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking message as read:", error);
       res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // Activity feed endpoint
+  app.get('/api/activity/my', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const activities = await storage.getUserActivity(userId);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
     }
   });
 
@@ -846,6 +884,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing member registration:", error);
       res.status(500).json({ message: "Failed to process membership application" });
+    }
+  });
+
+  // Admin: Get all messages (conversations with members)
+  app.get('/api/admin/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const allMessages = await storage.getAllMessages();
+      // Filter to show only admin-member conversations
+      const adminMessages = allMessages.filter(msg => 
+        msg.fromUser.isAdmin || msg.toUser.isAdmin
+      );
+      res.json(adminMessages);
+    } catch (error) {
+      console.error("Error fetching admin messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Admin: Reply to member message
+  app.post('/api/admin/messages/reply', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { toUserId, subject, content, originalMessageId } = req.body;
+      
+      if (!toUserId || !content) {
+        return res.status(400).json({ message: "Recipient and content are required" });
+      }
+
+      const messageData = insertMessageSchema.parse({
+        toUserId,
+        subject: subject || `Re: ${req.body.originalSubject || 'Message'}`,
+        content,
+        fromUserId: userId,
+      });
+
+      const message = await storage.createMessage(messageData);
+      res.json(message);
+    } catch (error) {
+      console.error("Error replying to message:", error);
+      res.status(500).json({ message: "Failed to send reply" });
     }
   });
 

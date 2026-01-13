@@ -8,12 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, Link } from "wouter";
+import LoadingBar from "@/components/LoadingBar";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showLoadingBar, setShowLoadingBar] = useState(false);
 
   // Redirect if already authenticated
   if (user) {
@@ -38,14 +40,19 @@ export default function AuthPage() {
         description: "You've been successfully signed in.",
       });
       
-      window.location.href = "/";
+      // Show loading bar before redirect
+      setShowLoadingBar(true);
+      
+      // Redirect after a brief delay to show loading bar
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Sign In Failed",
         description: error.message || "Invalid email or password",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -98,7 +105,9 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-baco-neutral to-white">
+    <>
+      {showLoadingBar && <LoadingBar />}
+      <div className="min-h-screen bg-gradient-to-br from-baco-neutral to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <header className="py-8">
@@ -313,6 +322,7 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

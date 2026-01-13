@@ -78,6 +78,9 @@ export interface IStorage {
   getAllDocuments(): Promise<(Document & { user: User })[]>;
   getAllMessages(): Promise<(Message & { fromUser: User; toUser: User })[]>;
   getUserStats(): Promise<{ totalMembers: number; activeMembers: number; pendingDocuments: number; }>;
+  
+  // Activity operations
+  getUserActivity(userId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -421,12 +424,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Message operations
-  async getUserMessages(userId: string): Promise<Message[]> {
-    return await db
+  async getUserMessages(userId: string): Promise<(Message & { fromUser?: User; toUser?: User })[]> {
+    const messageList = await db
       .select()
       .from(messages)
       .where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)))
       .orderBy(desc(messages.sentAt));
+
+    // Get user info for all unique user IDs
+    const userIds = new Set<string>();
+    messageList.forEach(msg => {
+      userIds.add(msg.fromUserId);
+      userIds.add(msg.toUserId);
+    });
+
+    const usersMap = new Map<string, User>();
+    for (const uid of userIds) {
+      const user = await this.getUser(uid);
+      if (user) {
+        usersMap.set(uid, user);
+      }
+    }
+
+    return messageList.map(msg => ({
+      ...msg,
+      fromUser: usersMap.get(msg.fromUserId),
+      toUser: usersMap.get(msg.toUserId),
+    }));
   }
 
   async getMessage(id: string): Promise<Message | undefined> {
@@ -510,21 +534,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllMessages(): Promise<(Message & { fromUser: User; toUser: User })[]> {
-    const results = await db
-      .select({
-        message: messages,
-        fromUser: users,
-        toUser: users
-      })
+    const messageList = await db
+      .select()
       .from(messages)
-      .innerJoin(users, eq(messages.fromUserId, users.id))
-      .innerJoin(users, eq(messages.toUserId, users.id))
       .orderBy(desc(messages.sentAt));
 
-    return results.map(result => ({
-      ...result.message,
-      fromUser: result.fromUser,
-      toUser: result.toUser
+    // Get user info for all unique user IDs
+    const userIds = new Set<string>();
+    messageList.forEach(msg => {
+      userIds.add(msg.fromUserId);
+      userIds.add(msg.toUserId);
+    });
+
+    const usersMap = new Map<string, User>();
+    for (const uid of userIds) {
+      const user = await this.getUser(uid);
+      if (user) {
+        usersMap.set(uid, user);
+      }
+    }
+
+    return messageList.map(msg => ({
+      ...msg,
+      fromUser: usersMap.get(msg.fromUserId)!,
+      toUser: usersMap.get(msg.toUserId)!,
     }));
   }
 
@@ -544,6 +577,104 @@ export class DatabaseStorage implements IStorage {
       activeMembers: activeMembersResult.count,
       pendingDocuments: pendingDocumentsResult.count,
     };
+  }
+
+  async getUserActivity(userId: string): Promise<any[]> {
+    const activities: any[] = [];
+
+    // Get event registrations
+    const registrations = await db
+      .select({
+        id: eventRegistrations.id,
+        eventTitle: events.title,
+        date: eventRegistrations.registrationDate,
+      })
+      .from(eventRegistrations)
+      .innerJoin(events, eq(eventRegistrations.eventId, events.id))
+      .where(eq(eventRegistrations.userId, userId))
+      .orderBy(desc(eventRegistrations.registrationDate))
+      .limit(10);
+
+    activities.push(...registrations.map(r => ({
+      type: 'event',
+      message: `Registered for ${r.eventTitle}`,
+      date: r.date,
+      icon: 'calendar',
+      color: 'baco-accent',
+      timestamp: r.date,
+    })));
+
+    // Get document uploads
+    const docUploads = await db
+      .select({
+        id: documents.id,
+        fileName: documents.fileName,
+        date: documents.uploadDate,
+      })
+      .from(documents)
+      .where(eq(documents.userId, userId))
+      .orderBy(desc(documents.uploadDate))
+      .limit(10);
+
+    activities.push(...docUploads.map(d => ({
+      type: 'document',
+      message: `Uploaded ${d.fileName}`,
+      date: d.date,
+      icon: 'file',
+      color: 'baco-primary',
+      timestamp: d.date,
+    })));
+
+    // Get payments
+    const userPayments = await db
+      .select({
+        id: payments.id,
+        amount: payments.amount,
+        currency: payments.currency,
+        date: payments.paymentDate,
+      })
+      .from(payments)
+      .where(and(
+        eq(payments.userId, userId),
+        eq(payments.status, 'completed')
+      ))
+      .orderBy(desc(payments.paymentDate))
+      .limit(10);
+
+    activities.push(...userPayments.map(p => ({
+      type: 'payment',
+      message: `Payment of $${p.amount} ${p.currency} processed`,
+      date: p.date,
+      icon: 'check',
+      color: 'baco-success',
+      timestamp: p.date,
+    })));
+
+    // Get messages received
+    const messagesReceived = await db
+      .select({
+        id: messages.id,
+        subject: messages.subject,
+        date: messages.sentAt,
+      })
+      .from(messages)
+      .where(eq(messages.toUserId, userId))
+      .orderBy(desc(messages.sentAt))
+      .limit(10);
+
+    activities.push(...messagesReceived.map(m => ({
+      type: 'message',
+      message: `Received message: ${m.subject || 'No subject'}`,
+      date: m.date,
+      icon: 'envelope',
+      color: 'purple-600',
+      timestamp: m.date,
+    })));
+
+    // Sort by date (most recent first) and limit to 10
+    return activities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
   }
 
   // This method initializes the database with sample data if it's empty.

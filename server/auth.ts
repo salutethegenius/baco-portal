@@ -166,7 +166,14 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      // Destroy the session
+      req.session?.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error("Error destroying session:", destroyErr);
+        }
+        res.clearCookie("connect.sid");
+        res.sendStatus(200);
+      });
     });
   });
 
