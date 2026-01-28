@@ -20,11 +20,22 @@ if (!stripe) {
 }
 
 // Lightweight server-side audit helper – keep payloads minimal to avoid logging sensitive data
-const auditLog = (event: string, details: Record<string, unknown>) => {
+const auditLog = async (event: string, details: Record<string, unknown>, req?: any) => {
   try {
-    // Avoid noisy logs in tests if desired
+    // Log to console for immediate visibility
     // eslint-disable-next-line no-console
     console.log("[AUDIT]", new Date().toISOString(), event, details);
+    
+    // Persist to database (fire-and-forget to avoid blocking request handling)
+    storage.createAuditLog({
+      event,
+      userId: details.byUserId as string | undefined,
+      targetUserId: details.targetUserId as string | undefined,
+      details: JSON.stringify(details),
+      ipAddress: req?.ip || req?.socket?.remoteAddress,
+    }).catch(() => {
+      // Silently fail - audit logging should never break request handling
+    });
   } catch {
     // Swallow logging errors – never break request handling
   }
@@ -157,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })),
       };
 
-      auditLog("privacy.myData.downloaded", { userId });
+      auditLog("privacy.myData.downloaded", { userId }, req);
       res.json(bundle);
     } catch (error) {
       console.error("Error generating privacy data export:", error);
@@ -193,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: details,
       } as any);
 
-      auditLog("privacy.correction.requested", { userId, toAdminId: admin.id });
+      auditLog("privacy.correction.requested", { userId, toAdminId: admin.id }, req);
       res.status(201).json({ message: "Your correction request has been submitted to BACO." });
     } catch (error) {
       console.error("Error submitting correction request:", error);
@@ -232,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: contentLines.join("\n"),
       } as any);
 
-      auditLog("privacy.deletion.requested", { userId, toAdminId: admin.id });
+      auditLog("privacy.deletion.requested", { userId, toAdminId: admin.id }, req);
       res.status(201).json({
         message:
           "Your request has been submitted. BACO may need to retain certain records for legal or audit reasons and will respond to you directly.",
@@ -378,7 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.deleteEvent(req.params.id);
-      auditLog("event.deleted", { eventId: req.params.id, byUserId: userId });
+      auditLog("event.deleted", { eventId: req.params.id, byUserId: userId }, req);
       res.json({ message: "Event deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting event:", error);
@@ -950,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         byUserId: userId,
         registrationsCount: registrations.length,
         reason: (req.query?.reason as string) || undefined,
-      });
+      }, req);
     } catch (error) {
       console.error("Error exporting event registrations:", error);
       res.status(500).json({ message: "Failed to export event registrations" });
@@ -1034,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentId: req.params.id,
         newStatus: status,
         byUserId: userId,
-      });
+      }, req);
       
       // Send email notification based on status
       const docUser = await storage.getUser(document.userId);
@@ -1196,7 +1207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetUserId: userId,
         newIsAdmin: isAdmin,
         byUserId: req.user?.id,
-      });
+      }, req);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating admin status:", error);
@@ -1223,7 +1234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       auditLog("user.deleted", {
         targetUserId: userId,
         byUserId: req.user?.id,
-      });
+      }, req);
       res.json({ message: "User deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting user:", error);
@@ -1713,7 +1724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       auditLog("retention.purge.executed", {
         byUserId: req.user?.id,
         stats,
-      });
+      }, req);
       
       res.json({
         message: "Retention purge completed successfully",
@@ -1722,6 +1733,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error running retention purge:", error);
       res.status(500).json({ message: error.message || "Failed to run retention purge" });
+    }
+  });
+
+  // Compliance Dashboard Endpoints
+
+  // GET /api/admin/audit-logs - Paginated audit log with filters
+  app.get('/api/admin/audit-logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const event = req.query.event as string | undefined;
+      const userId = req.query.userId as string | undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const logs = await storage.getAuditLogs(
+        { event, userId, startDate, endDate },
+        limit,
+        offset
+      );
+
+      res.json(logs);
+    } catch (error: any) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch audit logs" });
+    }
+  });
+
+  // GET /api/admin/dsr-requests - Data Subject Requests (messages with correction/deletion keywords)
+  app.get('/api/admin/dsr-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const allMessages = await storage.getAllMessages();
+      // Filter messages that are likely data subject requests
+      const dsrMessages = allMessages.filter(msg => {
+        const subject = (msg.subject || "").toLowerCase();
+        const content = (msg.content || "").toLowerCase();
+        return subject.includes("correction") || 
+               subject.includes("deletion") || 
+               subject.includes("deactivate") ||
+               content.includes("data correction") ||
+               content.includes("delete my account") ||
+               content.includes("deactivate my account");
+      });
+
+      res.json(dsrMessages);
+    } catch (error: any) {
+      console.error("Error fetching DSR requests:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch DSR requests" });
+    }
+  });
+
+  // GET /api/admin/retention/stats - Retention statistics
+  app.get('/api/admin/retention/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const stats = await storage.getRetentionStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching retention stats:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch retention stats" });
+    }
+  });
+
+  // GET /api/admin/consent-stats - Marketing consent statistics
+  app.get('/api/admin/consent-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const stats = await storage.getConsentStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching consent stats:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch consent stats" });
+    }
+  });
+
+  // GET /api/admin/users/deleted - List of soft-deleted/deactivated users
+  app.get('/api/admin/users/deleted', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const deletedUsers = await storage.getDeletedUsers();
+      res.json(deletedUsers);
+    } catch (error: any) {
+      console.error("Error fetching deleted users:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch deleted users" });
+    }
+  });
+
+  // POST /api/admin/users/:id/restore - Restore a soft-deleted user
+  app.post('/api/admin/users/:id/restore', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const restoredUser = await storage.restoreUser(id);
+      
+      auditLog("user.restored", {
+        targetUserId: id,
+        byUserId: req.user?.id,
+      }, req);
+
+      res.json({ message: "User account restored successfully", user: restoredUser });
+    } catch (error: any) {
+      console.error("Error restoring user:", error);
+      res.status(500).json({ message: error.message || "Failed to restore user" });
     }
   });
 

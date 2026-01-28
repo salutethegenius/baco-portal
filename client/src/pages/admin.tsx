@@ -23,7 +23,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useLocation } from "wouter";
 import ObjectUploader from "@/components/ObjectUploader";
-import { Award } from "lucide-react";
+import { Award, Shield, FileText, Clock, Users, CheckCircle, XCircle, RotateCcw, Trash2 } from "lucide-react";
 import RegistrationAdminEdit from "@/components/RegistrationAdminEdit";
 import AdminMessagesTab from "@/components/AdminMessagesTab";
 import CertificateTemplateUploader from "@/components/CertificateTemplateUploader";
@@ -43,6 +43,411 @@ const eventSchema = z.object({
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
+
+// Compliance Dashboard Components
+function AuditLogViewer() {
+  const [eventFilter, setEventFilter] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [page, setPage] = useState(0);
+  const limit = 50;
+
+  const { data: auditLogs = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/audit-logs", eventFilter, startDate, endDate, page],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (eventFilter) params.append("event", eventFilter);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      params.append("limit", limit.toString());
+      params.append("offset", (page * limit).toString());
+      const response = await apiRequest("GET", `/api/admin/audit-logs?${params}`);
+      return response.json();
+    },
+  });
+
+  const eventTypes = [
+    "privacy.myData.downloaded",
+    "privacy.correction.requested",
+    "privacy.deletion.requested",
+    "event.deleted",
+    "event.registrations.exported",
+    "document.status.updated",
+    "user.adminStatus.updated",
+    "user.deleted",
+    "user.deactivated",
+    "retention.purge.executed",
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4 flex-wrap">
+        <Select value={eventFilter} onValueChange={setEventFilter}>
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Filter by event type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Events</SelectItem>
+            {eventTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          type="date"
+          placeholder="Start Date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="w-[180px]"
+        />
+        <Input
+          type="date"
+          placeholder="End Date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="w-[180px]"
+        />
+      </div>
+      {isLoading ? (
+        <div className="text-center py-8">Loading audit logs...</div>
+      ) : auditLogs.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">No audit logs found</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Timestamp</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>User ID</TableHead>
+                <TableHead>Target User ID</TableHead>
+                <TableHead>Details</TableHead>
+                <TableHead>IP Address</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {auditLogs.map((log: any) => (
+                <TableRow key={log.id}>
+                  <TableCell>{format(new Date(log.createdAt), "PPpp")}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{log.event}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{log.userId || "-"}</TableCell>
+                  <TableCell className="font-mono text-xs">{log.targetUserId || "-"}</TableCell>
+                  <TableCell className="max-w-md">
+                    <pre className="text-xs overflow-auto">{log.details || "{}"}</pre>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{log.ipAddress || "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      <div className="flex justify-between items-center">
+        <Button variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)}>
+          Previous
+        </Button>
+        <span className="text-sm text-gray-500">Page {page + 1}</span>
+        <Button variant="outline" disabled={auditLogs.length < limit} onClick={() => setPage(page + 1)}>
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DataSubjectRequestsTracker() {
+  const { data: dsrRequests = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/dsr-requests"],
+  });
+  const { toast } = useToast();
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading data subject requests...</div>;
+  }
+
+  if (dsrRequests.length === 0) {
+    return <div className="text-center py-8 text-gray-500">No data subject requests found</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>From</TableHead>
+            <TableHead>Subject</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {dsrRequests.map((msg: any) => (
+            <TableRow key={msg.id}>
+              <TableCell>{msg.fromUser?.email || msg.fromUserId}</TableCell>
+              <TableCell>{msg.subject || "No subject"}</TableCell>
+              <TableCell>{format(new Date(msg.sentAt), "PPp")}</TableCell>
+              <TableCell>
+                <Badge variant={msg.isRead ? "default" : "destructive"}>
+                  {msg.isRead ? "Resolved" : "Pending"}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    toast({
+                      title: "View Message",
+                      description: "Open Messages tab to view full conversation",
+                    });
+                  }}
+                >
+                  View
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function RetentionDashboard() {
+  const { data: stats, isLoading } = useQuery<{
+    active: number;
+    softDeleted: number;
+    anonymized: number;
+    upcomingPurge: number;
+  }>({
+    queryKey: ["/api/admin/retention/stats"],
+  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const purgeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/retention/purge");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Purge Completed",
+        description: `Purged ${data.stats.usersSoftDeleted} users, ${data.stats.eventRegistrationsDeleted} registrations, and more.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/retention/stats"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Purge Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading retention stats...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.active || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Soft-Deleted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.softDeleted || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Anonymized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.anonymized || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Upcoming Purge</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.upcomingPurge || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Candidates</p>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="flex justify-end">
+        <Button
+          variant="destructive"
+          onClick={() => {
+            if (confirm("Are you sure you want to run the retention purge? This will soft-delete inactive users and remove old data.")) {
+              purgeMutation.mutate();
+            }
+          }}
+          disabled={purgeMutation.isPending}
+        >
+          {purgeMutation.isPending ? "Running..." : "Run Manual Purge"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ConsentOverview() {
+  const { data: stats, isLoading } = useQuery<{ optedIn: number; optedOut: number }>({
+    queryKey: ["/api/admin/consent-stats"],
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading consent stats...</div>;
+  }
+
+  const total = (stats?.optedIn || 0) + (stats?.optedOut || 0);
+  const optedInPercent = total > 0 ? Math.round(((stats?.optedIn || 0) / total) * 100) : 0;
+  const optedOutPercent = total > 0 ? Math.round(((stats?.optedOut || 0) / total) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              Opted In
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.optedIn || 0}</div>
+            <div className="text-sm text-gray-500">{optedInPercent}%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-600" />
+              Opted Out
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.optedOut || 0}</div>
+            <div className="text-sm text-gray-500">{optedOutPercent}%</div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-4">
+        <div
+          className="bg-green-600 h-4 rounded-full transition-all"
+          style={{ width: `${optedInPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DeactivatedUsersList() {
+  const { data: deletedUsers = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/users/deleted"],
+  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const restoreMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("POST", `/api/admin/users/${userId}/restore`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Restored",
+        description: "User account has been restored successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/deleted"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Restore Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading deactivated users...</div>;
+  }
+
+  if (deletedUsers.length === 0) {
+    return <div className="text-center py-8 text-gray-500">No deactivated users found</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Deactivated</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {deletedUsers.map((user: any) => (
+            <TableRow key={user.id}>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>
+                {user.firstName} {user.lastName}
+              </TableCell>
+              <TableCell>
+                {user.deletedAt ? format(new Date(user.deletedAt), "PPp") : "-"}
+              </TableCell>
+              <TableCell>
+                <Badge variant={user.firstName === "Deleted" ? "destructive" : "secondary"}>
+                  {user.firstName === "Deleted" ? "Anonymized" : "Soft-Deleted"}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {user.firstName !== "Deleted" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Restore account for ${user.email}?`)) {
+                        restoreMutation.mutate(user.id);
+                      }
+                    }}
+                    disabled={restoreMutation.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Restore
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 export default function Admin() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -446,6 +851,7 @@ export default function Admin() {
             <TabsTrigger value="certificates" data-testid="tab-certificates">Certificates</TabsTrigger>
             <TabsTrigger value="invoices" data-testid="tab-invoices">Invoices</TabsTrigger>
             <TabsTrigger value="messages" data-testid="tab-messages">Messages</TabsTrigger>
+            <TabsTrigger value="compliance" data-testid="tab-compliance">Compliance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -1443,6 +1849,75 @@ export default function Admin() {
 
           <TabsContent value="messages">
             <AdminMessagesTab />
+          </TabsContent>
+
+          <TabsContent value="compliance">
+            <div className="space-y-6">
+              {/* Audit Log Viewer */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Audit Log Viewer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AuditLogViewer />
+                </CardContent>
+              </Card>
+
+              {/* Data Subject Requests */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Data Subject Requests
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DataSubjectRequestsTracker />
+                </CardContent>
+              </Card>
+
+              {/* Retention Dashboard */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Retention Dashboard
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RetentionDashboard />
+                </CardContent>
+              </Card>
+
+              {/* Consent Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Consent Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ConsentOverview />
+                </CardContent>
+              </Card>
+
+              {/* Deactivated Users */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Deactivated Users
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DeactivatedUsersList />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

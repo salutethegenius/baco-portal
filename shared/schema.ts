@@ -221,6 +221,23 @@ export const invoices = pgTable("invoices", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Audit logs table for compliance tracking
+// Data classification: medium – contains action logs, user IDs, and metadata for audit purposes.
+// Retention: keep for 7+ years per audit/compliance requirements.
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  event: varchar("event").notNull(),
+  userId: varchar("user_id").references(() => users.id), // User who performed action
+  targetUserId: varchar("target_user_id").references(() => users.id), // User affected (if applicable)
+  details: text("details"), // JSON stringified details
+  ipAddress: varchar("ip_address"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_audit_logs_event").on(table.event),
+  index("IDX_audit_logs_user_id").on(table.userId),
+  index("IDX_audit_logs_created_at").on(table.createdAt),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   documents: many(documents),
@@ -381,3 +398,5 @@ export type InsertCertificateTemplate = z.infer<typeof insertCertificateTemplate
 export type CertificateTemplate = typeof certificateTemplates.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;

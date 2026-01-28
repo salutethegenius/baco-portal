@@ -7,6 +7,7 @@ import {
   payments,
   certificateTemplates,
   invoices,
+  auditLogs,
   type User,
   type UpsertUser,
   type Event,
@@ -23,9 +24,11 @@ import {
   type InsertCertificateTemplate,
   type Invoice,
   type InsertInvoice,
+  type AuditLog,
+  type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, count, sql } from "drizzle-orm";
+import { eq, desc, and, or, count, sql, gte, lte, isNotNull } from "drizzle-orm";
 import { generateSlug, ensureUniqueSlug } from "@shared/utils";
 import crypto from "crypto";
 
@@ -104,6 +107,14 @@ export interface IStorage {
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
   generateInvoiceNumber(): Promise<string>;
+
+  // Compliance operations
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(filters?: { event?: string; userId?: string; startDate?: Date; endDate?: Date }, limit?: number, offset?: number): Promise<AuditLog[]>;
+  getDeletedUsers(): Promise<User[]>;
+  restoreUser(userId: string): Promise<User>;
+  getRetentionStats(): Promise<{ active: number; softDeleted: number; anonymized: number; upcomingPurge: number }>;
+  getConsentStats(): Promise<{ optedIn: number; optedOut: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -932,6 +943,115 @@ export class DatabaseStorage implements IStorage {
         await db.insert(events).values(event);
       }
     }
+  }
+
+  // Compliance operations
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [auditLog] = await db.insert(auditLogs).values(log).returning();
+    return auditLog;
+  }
+
+  async getAuditLogs(
+    filters?: { event?: string; userId?: string; startDate?: Date; endDate?: Date },
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<AuditLog[]> {
+    let query = db.select().from(auditLogs);
+
+    const conditions = [];
+    if (filters?.event) {
+      conditions.push(eq(auditLogs.event, filters.event));
+    }
+    if (filters?.userId) {
+      conditions.push(eq(auditLogs.userId, filters.userId));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(auditLogs.createdAt, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(auditLogs.createdAt, filters.endDate));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return await query.orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset);
+  }
+
+  async getDeletedUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(isNotNull(users.deletedAt))
+      .orderBy(desc(users.deletedAt));
+  }
+
+  async restoreUser(userId: string): Promise<User> {
+    const [restoredUser] = await db
+      .update(users)
+      .set({
+        deletedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return restoredUser;
+  }
+
+  async getRetentionStats(): Promise<{ active: number; softDeleted: number; anonymized: number; upcomingPurge: number }> {
+    const sixYearsAgo = new Date();
+    sixYearsAgo.setFullYear(sixYearsAgo.getFullYear() - 6);
+
+    const [activeResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(sql`${users.deletedAt} IS NULL`);
+
+    const [softDeletedResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(isNotNull(users.deletedAt), sql`${users.firstName} != 'Deleted'`));
+
+    const [anonymizedResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(isNotNull(users.deletedAt), eq(users.firstName, "Deleted")));
+
+    const [upcomingPurgeResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(
+        and(
+          sql`${users.deletedAt} IS NULL`,
+          sql`${users.updatedAt} < ${sixYearsAgo}`,
+          sql`${users.membershipStatus} != 'active'`
+        )
+      );
+
+    return {
+      active: activeResult?.count || 0,
+      softDeleted: softDeletedResult?.count || 0,
+      anonymized: anonymizedResult?.count || 0,
+      upcomingPurge: upcomingPurgeResult?.count || 0,
+    };
+  }
+
+  async getConsentStats(): Promise<{ optedIn: number; optedOut: number }> {
+    const [optedInResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(eq(users.marketingOptIn, true), sql`${users.deletedAt} IS NULL`));
+
+    const [optedOutResult] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(eq(users.marketingOptIn, false), sql`${users.deletedAt} IS NULL`));
+
+    return {
+      optedIn: optedInResult?.count || 0,
+      optedOut: optedOutResult?.count || 0,
+    };
   }
 }
 
