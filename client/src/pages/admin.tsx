@@ -46,7 +46,7 @@ type EventFormData = z.infer<typeof eventSchema>;
 
 // Compliance Dashboard Components
 function AuditLogViewer() {
-  const [eventFilter, setEventFilter] = useState<string>("");
+  const [eventFilter, setEventFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(0);
@@ -56,7 +56,7 @@ function AuditLogViewer() {
     queryKey: ["/api/admin/audit-logs", eventFilter, startDate, endDate, page],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (eventFilter) params.append("event", eventFilter);
+      if (eventFilter && eventFilter !== "all") params.append("event", eventFilter);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
       params.append("limit", limit.toString());
@@ -87,7 +87,7 @@ function AuditLogViewer() {
             <SelectValue placeholder="Filter by event type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Events</SelectItem>
+            <SelectItem value="all">All Events</SelectItem>
             {eventTypes.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
