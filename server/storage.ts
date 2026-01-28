@@ -5,6 +5,8 @@ import {
   documents,
   messages,
   payments,
+  certificateTemplates,
+  invoices,
   type User,
   type UpsertUser,
   type Event,
@@ -17,6 +19,10 @@ import {
   type InsertMessage,
   type Payment,
   type InsertPayment,
+  type CertificateTemplate,
+  type InsertCertificateTemplate,
+  type Invoice,
+  type InsertInvoice,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
@@ -34,6 +40,8 @@ export interface IStorage {
   updateUserMembershipStatus(userId: string, status: string, nextPaymentDate?: Date): Promise<User>;
   updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<User>;
   deleteUser(userId: string): Promise<void>;
+  deactivateUser(userId: string): Promise<User>;
+  anonymiseUser(userId: string): Promise<void>;
 
   // Event operations
   getEvents(): Promise<Event[]>;
@@ -81,12 +89,30 @@ export interface IStorage {
   
   // Activity operations
   getUserActivity(userId: string): Promise<any[]>;
+
+  // Certificate template operations
+  getCertificateTemplates(): Promise<CertificateTemplate[]>;
+  getCertificateTemplate(id: string): Promise<CertificateTemplate | undefined>;
+  createCertificateTemplate(template: InsertCertificateTemplate): Promise<CertificateTemplate>;
+  updateCertificateTemplate(id: string, template: Partial<InsertCertificateTemplate>): Promise<CertificateTemplate>;
+  deleteCertificateTemplate(id: string): Promise<void>;
+
+  // Invoice operations
+  getInvoices(): Promise<Invoice[]>;
+  getUserInvoices(userId: string): Promise<Invoice[]>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
+  generateInvoiceNumber(): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), sql`${users.deletedAt} IS NULL`));
     return user;
   }
 
@@ -106,7 +132,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), sql`${users.deletedAt} IS NULL`));
     return user;
   }
 
@@ -154,7 +183,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsersDetailed(): Promise<User[]> {
-    return await db.select().from(users).orderBy(desc(users.createdAt));
+    return await db
+      .select()
+      .from(users)
+      .where(sql`${users.deletedAt} IS NULL`)
+      .orderBy(desc(users.createdAt));
   }
 
   async updateUser(userId: string, userData: Partial<UpsertUser>): Promise<User> {
@@ -180,14 +213,48 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    // Delete all related data first
-    await db.delete(eventRegistrations).where(eq(eventRegistrations.userId, userId));
-    await db.delete(documents).where(eq(documents.userId, userId));
-    await db.delete(messages).where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)));
-    await db.delete(payments).where(eq(payments.userId, userId));
-    
-    // Finally delete the user
-    await db.delete(users).where(eq(users.id, userId));
+    // Soft delete: mark as deleted rather than hard delete for retention compliance
+    await db
+      .update(users)
+      .set({
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async deactivateUser(userId: string): Promise<User> {
+    // Soft-delete user account (marks as deleted but keeps data for retention period)
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async anonymiseUser(userId: string): Promise<void> {
+    // Anonymise user data while keeping records for audit/legal purposes
+    // This is used when retention period expires but legal obligations require keeping records
+    const anonymisedEmail = `deleted_${userId.slice(0, 8)}_${Date.now()}@deleted.baco`;
+    await db
+      .update(users)
+      .set({
+        email: anonymisedEmail,
+        firstName: "Deleted",
+        lastName: "User",
+        phone: null,
+        address: null,
+        homeAddress: null,
+        businessAddress: null,
+        password: crypto.randomBytes(32).toString("hex"), // Invalidate password
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {
@@ -439,7 +506,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const usersMap = new Map<string, User>();
-    for (const uid of userIds) {
+    for (const uid of Array.from(userIds)) {
       const user = await this.getUser(uid);
       if (user) {
         usersMap.set(uid, user);
@@ -517,7 +584,11 @@ export class DatabaseStorage implements IStorage {
 
   // Admin operations
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(desc(users.createdAt));
+    return await db
+      .select()
+      .from(users)
+      .where(sql`${users.deletedAt} IS NULL`)
+      .orderBy(desc(users.createdAt));
   }
 
   async getAllDocuments(): Promise<(Document & { user: User })[]> {
@@ -547,7 +618,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const usersMap = new Map<string, User>();
-    for (const uid of userIds) {
+    for (const uid of Array.from(userIds)) {
       const user = await this.getUser(uid);
       if (user) {
         usersMap.set(uid, user);
@@ -675,6 +746,109 @@ export class DatabaseStorage implements IStorage {
     return activities
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 10);
+  }
+
+  // Certificate template operations
+  async getCertificateTemplates(): Promise<CertificateTemplate[]> {
+    return await db
+      .select()
+      .from(certificateTemplates)
+      .where(eq(certificateTemplates.isActive, true))
+      .orderBy(desc(certificateTemplates.createdAt));
+  }
+
+  async getCertificateTemplate(id: string): Promise<CertificateTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(certificateTemplates)
+      .where(eq(certificateTemplates.id, id));
+    return template;
+  }
+
+  async createCertificateTemplate(template: InsertCertificateTemplate): Promise<CertificateTemplate> {
+    const [newTemplate] = await db
+      .insert(certificateTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async updateCertificateTemplate(id: string, templateData: Partial<InsertCertificateTemplate>): Promise<CertificateTemplate> {
+    const [updatedTemplate] = await db
+      .update(certificateTemplates)
+      .set({
+        ...templateData,
+        updatedAt: new Date(),
+      })
+      .where(eq(certificateTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteCertificateTemplate(id: string): Promise<void> {
+    await db
+      .update(certificateTemplates)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(certificateTemplates.id, id));
+  }
+
+  // Invoice operations
+  async getInvoices(): Promise<Invoice[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  async getUserInvoices(userId: string): Promise<Invoice[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.userId, userId))
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+    return invoice;
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    const [newInvoice] = await db
+      .insert(invoices)
+      .values(invoice)
+      .returning();
+    return newInvoice;
+  }
+
+  async updateInvoice(id: string, invoiceData: Partial<InsertInvoice>): Promise<Invoice> {
+    const [updatedInvoice] = await db
+      .update(invoices)
+      .set(invoiceData)
+      .where(eq(invoices.id, id))
+      .returning();
+    return updatedInvoice;
+  }
+
+  async generateInvoiceNumber(): Promise<string> {
+    // Generate invoice number: INV-YYYY-MMDD-XXXX
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    // Get count of invoices today
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayInvoices = await db
+      .select({ count: count() })
+      .from(invoices)
+      .where(sql`${invoices.createdAt} >= ${sql.raw(`'${todayStart.toISOString()}'`)}`);
+    
+    const sequence = String((todayInvoices[0]?.count || 0) + 1).padStart(4, '0');
+    return `INV-${year}-${month}${day}-${sequence}`;
   }
 
   // This method initializes the database with sample data if it's empty.

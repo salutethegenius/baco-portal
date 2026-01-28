@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
 
 // Initialize SES client
 const sesClient = new SESClient({
@@ -18,37 +18,101 @@ if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
 const fromEmail = process.env.AWS_SES_FROM_EMAIL || 'noreply@baco-portal.com';
 const appUrl = process.env.APP_URL || 'http://localhost:5000';
 
-async function sendEmail(to: string, subject: string, htmlBody: string, textBody: string) {
+async function sendEmail(
+  to: string | string[],
+  subject: string,
+  htmlBody: string,
+  textBody: string,
+  attachment?: { filename: string; content: Buffer; contentType: string },
+  ccAddresses?: string[]
+) {
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     console.warn('AWS SES not configured - email not sent');
     return;
   }
 
   try {
-    const command = new SendEmailCommand({
-      Source: fromEmail,
-      Destination: {
-        ToAddresses: [to],
-      },
-      Message: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Html: {
-            Data: htmlBody,
-            Charset: 'UTF-8',
-          },
-          Text: {
-            Data: textBody,
-            Charset: 'UTF-8',
-          },
-        },
-      },
-    });
+    const toAddresses = Array.isArray(to) ? to : [to];
 
-    await sesClient.send(command);
+    // If we have an attachment, use SendRawEmailCommand with MIME encoding
+    if (attachment) {
+      const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36)}`;
+      const attachmentBase64 = attachment.content.toString('base64');
+      
+      // Escape special characters in email body for MIME
+      const escapedTextBody = textBody.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+      const escapedHtmlBody = htmlBody.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+      
+      const rawMessage = [
+        `From: ${fromEmail}`,
+        `To: ${toAddresses.join(', ')}`,
+        ...(ccAddresses && ccAddresses.length > 0 ? [`Cc: ${ccAddresses.join(', ')}`] : []),
+        `Subject: ${subject}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        ``,
+        `--${boundary}`,
+        `Content-Type: multipart/alternative; boundary="${boundary}_alt"`,
+        ``,
+        `--${boundary}_alt`,
+        `Content-Type: text/plain; charset=UTF-8`,
+        `Content-Transfer-Encoding: 7bit`,
+        ``,
+        escapedTextBody,
+        ``,
+        `--${boundary}_alt`,
+        `Content-Type: text/html; charset=UTF-8`,
+        `Content-Transfer-Encoding: 7bit`,
+        ``,
+        escapedHtmlBody,
+        ``,
+        `--${boundary}_alt--`,
+        ``,
+        `--${boundary}`,
+        `Content-Type: ${attachment.contentType}`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        `Content-Transfer-Encoding: base64`,
+        ``,
+        attachmentBase64,
+        ``,
+        `--${boundary}--`,
+      ].join('\r\n');
+
+      const command = new SendRawEmailCommand({
+        RawMessage: {
+          Data: Buffer.from(rawMessage),
+        },
+      });
+
+      await sesClient.send(command);
+    } else {
+      // Simple email without attachment
+      const command = new SendEmailCommand({
+        Source: fromEmail,
+        Destination: {
+          ToAddresses: toAddresses,
+          CcAddresses: ccAddresses,
+        },
+        Message: {
+          Subject: {
+            Data: subject,
+            Charset: 'UTF-8',
+          },
+          Body: {
+            Html: {
+              Data: htmlBody,
+              Charset: 'UTF-8',
+            },
+            Text: {
+              Data: textBody,
+              Charset: 'UTF-8',
+            },
+          },
+        },
+      });
+
+      await sesClient.send(command);
+    }
   } catch (error: any) {
     console.error('Error sending email:', error);
     throw new Error(`Failed to send email: ${error?.message || 'Unknown error'}`);
@@ -422,4 +486,127 @@ Bahamas Association of Compliance Officers
   `.trim();
 
   await sendEmail(to, 'Document Review - Action Required - BACO Portal', html, text);
+}
+
+export async function sendCertificateEmail(
+  to: string,
+  certificateBuffer: Buffer,
+  certificateFileName: string,
+  memberName: string
+) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #40E0D0; padding: 20px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #000; margin: 0;">BACO Portal</h1>
+        </div>
+        
+        <h2 style="color: #333;">Your Certificate is Ready</h2>
+        
+        <p>Hello ${memberName},</p>
+        
+        <p>Your certificate has been generated and is attached to this email.</p>
+        
+        <p>You can also view and download your certificate from your Documents section in the BACO Portal.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${appUrl}/documents" style="background-color: #40E0D0; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View Documents</a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Bahamas Association of Compliance Officers<br>
+          This is an automated message, please do not reply to this email.
+        </p>
+      </body>
+    </html>
+  `;
+
+  const text = `
+Hello ${memberName},
+
+Your certificate has been generated and is attached to this email.
+
+You can also view and download your certificate from your Documents section in the BACO Portal: ${appUrl}/documents
+
+Bahamas Association of Compliance Officers
+  `.trim();
+
+  await sendEmail(to, 'Your BACO Certificate', html, text, {
+    filename: certificateFileName,
+    content: certificateBuffer,
+    contentType: 'application/pdf',
+  });
+}
+
+export async function sendInvoiceEmail(
+  memberEmail: string,
+  companyEmail: string | undefined,
+  invoiceBuffer: Buffer,
+  invoiceFileName: string,
+  invoiceNumber: string,
+  memberName: string,
+  amount: number
+) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #40E0D0; padding: 20px; text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #000; margin: 0;">BACO Portal</h1>
+        </div>
+        
+        <h2 style="color: #333;">Invoice ${invoiceNumber}</h2>
+        
+        <p>Hello ${memberName},</p>
+        
+        <p>Your invoice has been generated and is attached to this email.</p>
+        
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Invoice Number:</strong> ${invoiceNumber}</p>
+          <p><strong>Amount:</strong> $${amount.toFixed(2)} BSD</p>
+        </div>
+        
+        <p>Please review the attached invoice and contact us if you have any questions.</p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Bahamas Association of Compliance Officers<br>
+          This is an automated message, please do not reply to this email.
+        </p>
+      </body>
+    </html>
+  `;
+
+  const text = `
+Hello ${memberName},
+
+Your invoice has been generated and is attached to this email.
+
+Invoice Number: ${invoiceNumber}
+Amount: $${amount.toFixed(2)} BSD
+
+Please review the attached invoice and contact us if you have any questions.
+
+Bahamas Association of Compliance Officers
+  `.trim();
+
+  // Send to member and CC company if provided
+  const ccAddresses = companyEmail ? [companyEmail] : undefined;
+  await sendEmail(memberEmail, `BACO Invoice ${invoiceNumber}`, html, text, {
+    filename: invoiceFileName,
+    content: invoiceBuffer,
+    contentType: 'application/pdf',
+  }, ccAddresses);
 }

@@ -20,6 +20,9 @@ import MemberRegistration from "@/pages/member-registration";
 import EventRegistration from "@/pages/event-registration";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import RequestInvoice from "@/pages/request-invoice";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -43,6 +46,8 @@ function Router() {
       <Route path="/member-registration" component={MemberRegistration} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
 
       {/* Authentication route */}
       <Route path="/auth" component={AuthPage} />
@@ -63,6 +68,7 @@ function Router() {
           <Route path="/admin" component={Admin} />
           <Route path="/checkout/:type" component={Checkout} />
           <Route path="/checkout/:type/:id" component={Checkout} />
+          <Route path="/request-invoice" component={RequestInvoice} />
         </>
       )}
       <Route component={NotFound} />

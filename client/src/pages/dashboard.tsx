@@ -221,6 +221,15 @@ export default function Dashboard() {
                   <i className="fas fa-envelope mr-2"></i>
                   Message Admin
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-baco-primary text-baco-primary hover:bg-baco-primary hover:text-white"
+                  onClick={() => navigate("/request-invoice")}
+                  data-testid="button-request-invoice"
+                >
+                  <i className="fas fa-file-invoice mr-2"></i>
+                  Request Invoice
+                </Button>
               </CardContent>
             </Card>
 

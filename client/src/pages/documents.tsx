@@ -26,6 +26,7 @@ export default function Documents() {
   const queryClient = useQueryClient();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadUrl, setUploadUrl] = useState<string>("");
+  const [uploadObjectPath, setUploadObjectPath] = useState<string>("");
 
   const { data: documents = [] } = useQuery({
     queryKey: ["/api/documents/my"],
@@ -41,8 +42,22 @@ export default function Documents() {
 
   const uploadMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("PUT", "/api/documents/upload", data);
-      return response.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:uploadMutation',message:'Upload mutation started',data:{fileName:data.fileName,hasObjectURL:!!data.objectURL,objectURL:data.objectURL?.substring(0,100),category:data.category},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      try {
+        const response = await apiRequest("PUT", "/api/documents/upload", data);
+        const result = await response.json();
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:uploadMutation',message:'Upload mutation success',data:{status:response.status,hasResult:!!result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        return result;
+      } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:uploadMutation',message:'Upload mutation error',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -53,6 +68,7 @@ export default function Documents() {
       setUploadDialogOpen(false);
       form.reset();
       setUploadUrl("");
+      setUploadObjectPath("");
     },
     onError: (error: Error) => {
       toast({
@@ -64,22 +80,69 @@ export default function Documents() {
   });
 
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest("POST", "/api/objects/upload");
-    const { uploadURL } = await response.json();
-    return {
-      method: "PUT" as const,
-      url: uploadURL,
-    };
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleGetUploadParameters',message:'Requesting upload parameters',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    try {
+      const response = await apiRequest("POST", "/api/objects/upload");
+      const result = await response.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleGetUploadParameters',message:'Upload parameters received',data:{hasUploadURL:!!result.uploadURL,hasObjectPath:!!result.objectPath,uploadURL:result.uploadURL?.substring(0,100),objectPath:result.objectPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      // Store the upload URL and object path for use after upload completes
+      setUploadUrl(result.uploadURL);
+      setUploadObjectPath(result.objectPath);
+      return {
+        method: "PUT" as const,
+        url: result.uploadURL,
+      };
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleGetUploadParameters',message:'Error getting upload parameters',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      throw error;
+    }
   };
 
   const handleUploadComplete = (result: any) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleUploadComplete',message:'Upload complete callback',data:{hasSuccessful:!!result.successful,successfulCount:result.successful?.length,resultKeys:Object.keys(result),fullResult:JSON.stringify(result).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     if (result.successful && result.successful.length > 0) {
-      setUploadUrl(result.successful[0].uploadURL);
+      const firstSuccess = result.successful[0];
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleUploadComplete',message:'Processing successful upload',data:{hasUploadURL:!!firstSuccess.uploadURL,uploadURL:firstSuccess.uploadURL?.substring(0,100),url:firstSuccess.url?.substring(0,100),response:firstSuccess.response,keys:Object.keys(firstSuccess),fullFirstSuccess:JSON.stringify(firstSuccess).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      // Try multiple ways to get the upload URL from Uppy result
+      const uploadURL = firstSuccess.uploadURL || 
+                       firstSuccess.url || 
+                       firstSuccess.response?.uploadURL ||
+                       firstSuccess.response?.url ||
+                       firstSuccess.meta?.uploadURL ||
+                       (firstSuccess.response?.body && typeof firstSuccess.response.body === 'string' ? firstSuccess.response.body : null);
+      
+      if (uploadURL) {
+        setUploadUrl(uploadURL);
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleUploadComplete',message:'Upload URL set',data:{uploadURL:uploadURL.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleUploadComplete',message:'Could not extract upload URL',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+      }
+    } else {
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleUploadComplete',message:'No successful uploads found',data:{hasFailed:!!result.failed,failedCount:result.failed?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
     }
   };
 
   const handleSubmitUpload = (data: z.infer<typeof uploadSchema>) => {
-    if (!uploadUrl) {
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleSubmitUpload',message:'Submit upload called',data:{hasUploadUrl:!!uploadUrl,hasObjectPath:!!uploadObjectPath,uploadUrl:uploadUrl?.substring(0,100),objectPath:uploadObjectPath,category:data.category,fileName:data.fileName},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    if (!uploadUrl && !uploadObjectPath) {
       toast({
         title: "Upload Required",
         description: "Please upload a file first.",
@@ -91,11 +154,17 @@ export default function Documents() {
     // Extract file info from upload URL or form
     const fileName = data.fileName || "Uploaded Document";
     
+    // Prefer objectPath (more reliable), fallback to uploadUrl
+    const objectURL = uploadObjectPath || uploadUrl;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'documents.tsx:handleSubmitUpload',message:'Calling upload mutation',data:{fileName,objectURL:objectURL?.substring(0,100),hasUploadUrl:!!uploadUrl,hasObjectPath:!!uploadObjectPath,usingObjectPath:!!uploadObjectPath,category:data.category},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     uploadMutation.mutate({
       fileName,
       fileType: "application/pdf", // Default, could be extracted from upload
       fileSize: 0, // Could be extracted from upload result
-      objectURL: uploadUrl,
+      objectURL: objectURL,
       category: data.category,
     });
   };
@@ -216,7 +285,7 @@ export default function Documents() {
                   <div className="flex space-x-3">
                     <Button
                       type="submit"
-                      disabled={uploadMutation.isPending || !uploadUrl}
+                      disabled={uploadMutation.isPending || (!uploadUrl && !uploadObjectPath)}
                       className="flex-1 bg-baco-primary hover:bg-baco-secondary"
                       data-testid="button-submit-upload"
                     >

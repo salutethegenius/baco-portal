@@ -6,7 +6,8 @@ import { insertEventSchema, insertDocumentSchema, insertMessageSchema, updateEve
 import { z } from "zod";
 import QRCode from "qrcode";
 import { SupabaseStorageService } from "./awsStorage";
-import { sendEventRegistrationConfirmationEmail, sendDocumentApprovalEmail, sendDocumentRejectionEmail } from "./email";
+import { sendEventRegistrationConfirmationEmail, sendDocumentApprovalEmail, sendDocumentRejectionEmail, sendCertificateEmail, sendInvoiceEmail } from "./email";
+import { generateCertificatePDF, generateInvoicePDF } from "./pdfGenerator";
 import Stripe from "stripe";
 
 // Initialize Stripe (optional - graceful fallback if keys not set)
@@ -17,6 +18,17 @@ const stripe = process.env.STRIPE_SECRET_KEY
 if (!stripe) {
   console.warn("⚠️ STRIPE_SECRET_KEY not set - payment processing will be unavailable");
 }
+
+// Lightweight server-side audit helper – keep payloads minimal to avoid logging sensitive data
+const auditLog = (event: string, details: Record<string, unknown>) => {
+  try {
+    // Avoid noisy logs in tests if desired
+    // eslint-disable-next-line no-console
+    console.log("[AUDIT]", new Date().toISOString(), event, details);
+  } catch {
+    // Swallow logging errors – never break request handling
+  }
+};
 
 // API validation schema for events that handles string inputs from frontend
 const apiEventSchema = z.object({
@@ -65,6 +77,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  // Privacy: bundle of personal data for the authenticated user
+  app.get("/api/privacy/my-data", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const [documentsData, registrations, paymentsData, invoicesData, messagesData] =
+        await Promise.all([
+          storage.getUserDocuments(userId),
+          storage.getUserEventRegistrations(userId),
+          storage.getUserPayments(userId),
+          storage.getUserInvoices(userId),
+          storage.getUserMessages(userId),
+        ]);
+
+      // Shape a privacy-focused bundle and avoid internal-only/admin-only fields where possible
+      const bundle = {
+        generatedAt: new Date().toISOString(),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          address: user.address,
+          membershipType: user.membershipType,
+          membershipStatus: user.membershipStatus,
+          joinDate: user.joinDate,
+          nextPaymentDate: user.nextPaymentDate,
+          nationality: user.nationality,
+          currentEmployer: user.currentEmployer,
+        },
+        documents: documentsData.map((d) => ({
+          id: d.id,
+          fileName: d.fileName,
+          category: d.category,
+          status: d.status,
+          uploadDate: d.uploadDate,
+        })),
+        eventRegistrations: registrations.map((r) => ({
+          id: r.id,
+          eventId: r.eventId,
+          eventTitle: r.event?.title,
+          registrationDate: r.registrationDate,
+          registrationType: r.registrationType,
+          paymentStatus: r.paymentStatus,
+          paymentAmount: r.paymentAmount,
+        })),
+        payments: paymentsData.map((p) => ({
+          id: p.id,
+          type: p.type,
+          amount: p.amount,
+          currency: p.currency,
+          status: p.status,
+          paymentDate: p.paymentDate,
+          description: p.description,
+        })),
+        invoices: invoicesData.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          amount: inv.amount,
+          status: inv.status,
+          createdAt: inv.createdAt,
+        })),
+        messages: messagesData.map((m) => ({
+          id: m.id,
+          fromUserId: m.fromUserId,
+          toUserId: m.toUserId,
+          subject: m.subject,
+          sentAt: m.sentAt,
+          isRead: m.isRead,
+        })),
+      };
+
+      auditLog("privacy.myData.downloaded", { userId });
+      res.json(bundle);
+    } catch (error) {
+      console.error("Error generating privacy data export:", error);
+      res.status(500).json({ message: "Failed to generate data export" });
+    }
+  });
+
+  // Privacy: user requests a correction to their data
+  app.post("/api/privacy/request-correction", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { details } = req.body as { details?: string };
+      if (!details || !details.trim()) {
+        return res.status(400).json({ message: "Please provide details of the correction requested" });
+      }
+
+      // Reuse messaging system to send a structured request to an admin
+      const allUsers = await storage.getAllUsers();
+      const admin = allUsers.find((u) => u.isAdmin);
+      if (!admin) {
+        return res.status(500).json({ message: "No administrator available to receive request" });
+      }
+
+      await storage.createMessage({
+        fromUserId: userId,
+        toUserId: admin.id,
+        subject: "Data correction request",
+        content: details,
+      } as any);
+
+      auditLog("privacy.correction.requested", { userId, toAdminId: admin.id });
+      res.status(201).json({ message: "Your correction request has been submitted to BACO." });
+    } catch (error) {
+      console.error("Error submitting correction request:", error);
+      res.status(500).json({ message: "Failed to submit correction request" });
+    }
+  });
+
+  // Privacy: user requests account deactivation / deletion
+  app.post("/api/privacy/request-deletion", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { reason } = req.body as { reason?: string };
+
+      const allUsers = await storage.getAllUsers();
+      const admin = allUsers.find((u) => u.isAdmin);
+      if (!admin) {
+        return res.status(500).json({ message: "No administrator available to receive request" });
+      }
+
+      const contentLines = [
+        `Member ${user.firstName} ${user.lastName} (${user.email}) has requested account deactivation/deletion from the BACO Portal.`,
+      ];
+      if (reason && reason.trim()) {
+        contentLines.push("", "Reason provided:", reason.trim());
+      }
+
+      await storage.createMessage({
+        fromUserId: userId,
+        toUserId: admin.id,
+        subject: "Account deletion/deactivation request",
+        content: contentLines.join("\n"),
+      } as any);
+
+      auditLog("privacy.deletion.requested", { userId, toAdminId: admin.id });
+      res.status(201).json({
+        message:
+          "Your request has been submitted. BACO may need to retain certain records for legal or audit reasons and will respond to you directly.",
+      });
+    } catch (error) {
+      console.error("Error submitting deletion request:", error);
+      res.status(500).json({ message: "Failed to submit deletion request" });
     }
   });
 
@@ -193,14 +368,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  app.delete("/api/events/:id", async (req, res) => {
+  app.delete("/api/events/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
       await storage.deleteEvent(req.params.id);
+      auditLog("event.deleted", { eventId: req.params.id, byUserId: userId });
       res.json({ message: "Event deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting event:", error);
 
-      if (error.message && error.message.includes('existing registrations')) {
+      if (error.message && error.message.includes("existing registrations")) {
         res.status(400).json({ message: error.message });
       } else {
         res.status(500).json({ message: "Failed to delete event" });
@@ -324,11 +507,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Storage/Upload routes
   app.post('/api/objects/upload', isAuthenticated, async (req: any, res) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Upload URL request',data:{fileType:req.body.fileType,userId:req.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       const { fileType } = req.body;
       const { uploadURL, objectPath } = await storageService.getUploadURL(fileType);
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Upload URL generated',data:{hasUploadURL:!!uploadURL,hasObjectPath:!!objectPath,objectPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       res.json({ uploadURL, objectPath });
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Error generating upload URL',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.error("Error generating upload URL:", error);
       res.status(500).json({ message: "Failed to generate upload URL" });
     }
@@ -347,21 +539,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put('/api/documents/upload', isAuthenticated, async (req: any, res) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Document upload request',data:{userId:req.user?.id,hasObjectURL:!!req.body.objectURL,objectURL:req.body.objectURL?.substring(0,100),fileName:req.body.fileName,category:req.body.category},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
       const userId = req.user.id;
       const { fileName, fileType, fileSize, objectURL, category } = req.body;
 
       if (!objectURL) {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Missing objectURL',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         return res.status(400).json({ message: "Object URL is required" });
       }
 
       // Extract object path from URL if it's a full URL, otherwise use as-is
       let objectPath = objectURL;
       if (objectURL.startsWith('http')) {
-        // Extract path from Supabase URL or use the objectPath if provided
+        // Extract path from Supabase URL
+        // Supabase URLs format: https://...storage.supabase.co/storage/v1/s3/bucket/path/to/file
         const urlObj = new URL(objectURL);
-        objectPath = urlObj.pathname.split('/').slice(-2).join('/'); // Get last two path segments
+        const pathParts = urlObj.pathname.split('/').filter(p => p);
+        // Find the path after the bucket name (usually 'uploads/...')
+        const bucketIndex = pathParts.findIndex(p => p.includes('bucket') || p.includes('uploads'));
+        if (bucketIndex >= 0 && bucketIndex < pathParts.length - 1) {
+          // Get everything after the bucket
+          objectPath = pathParts.slice(bucketIndex + 1).join('/');
+        } else {
+          // Fallback: get last two path segments
+          objectPath = pathParts.slice(-2).join('/');
+        }
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Extracted object path',data:{objectPath,originalURL:objectURL.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
 
       const document = await storage.createDocument({
         userId,
@@ -371,9 +582,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         objectPath: objectPath,
         category: category || 'other',
       });
-
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Document created successfully',data:{documentId:document.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       res.json(document);
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Error creating document',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.error("Error creating document:", error);
       res.status(500).json({ message: "Failed to create document: " + error.message });
     }
@@ -724,11 +940,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ].join('\n');
 
       // Set headers for file download
-      const filename = `${event?.title.replace(/[^a-z0-9]/gi, '_')}_registrations_${new Date().toISOString().split('T')[0]}.csv`;
+      const filename = `${event?.title.replace(/[^a-z0-9]/gi, '_')}_registrations_${new Date().toISOString().split("T")[0]}.csv`;
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       
       res.send(csvContent);
+      auditLog("event.registrations.exported", {
+        eventId: req.params.eventId,
+        byUserId: userId,
+        registrationsCount: registrations.length,
+        reason: (req.query?.reason as string) || undefined,
+      });
     } catch (error) {
       console.error("Error exporting event registrations:", error);
       res.status(500).json({ message: "Failed to export event registrations" });
@@ -808,6 +1030,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { status, reason } = req.body;
       const document = await storage.updateDocumentStatus(req.params.id, status, userId);
+      auditLog("document.status.updated", {
+        documentId: req.params.id,
+        newStatus: status,
+        byUserId: userId,
+      });
       
       // Send email notification based on status
       const docUser = await storage.getUser(document.userId);
@@ -965,6 +1192,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { isAdmin } = req.body;
 
       const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
+      auditLog("user.adminStatus.updated", {
+        targetUserId: userId,
+        newIsAdmin: isAdmin,
+        byUserId: req.user?.id,
+      });
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating admin status:", error);
@@ -988,6 +1220,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.deleteUser(userId);
+      auditLog("user.deleted", {
+        targetUserId: userId,
+        byUserId: req.user?.id,
+      });
       res.json({ message: "User deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting user:", error);
@@ -1068,10 +1304,426 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Certificate Template Endpoints (Admin Only)
+  app.post('/api/admin/certificate-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { name, description, templateImagePath, textConfig } = req.body;
+
+      if (!name || !templateImagePath) {
+        return res.status(400).json({ message: "Name and template image path are required" });
+      }
+
+      const template = await storage.createCertificateTemplate({
+        name,
+        description,
+        templateImagePath,
+        textConfig: textConfig || null,
+        isActive: true,
+        createdBy: userId,
+      });
+
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error creating certificate template:", error);
+      res.status(500).json({ message: "Failed to create certificate template: " + error.message });
+    }
+  });
+
+  app.get('/api/admin/certificate-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templates = await storage.getCertificateTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching certificate templates:", error);
+      res.status(500).json({ message: "Failed to fetch certificate templates" });
+    }
+  });
+
+  app.delete('/api/admin/certificate-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteCertificateTemplate(req.params.id);
+      res.json({ message: "Certificate template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting certificate template:", error);
+      res.status(500).json({ message: "Failed to delete certificate template" });
+    }
+  });
+
+  // Certificate Generation Endpoint (Admin Only)
+  app.post('/api/admin/certificates/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { memberId, templateId, name, date, logoPath, cpdHours } = req.body;
+
+      if (!memberId || !templateId || !name || !date || cpdHours === undefined) {
+        return res.status(400).json({ message: "Member ID, template ID, name, date, and CPD hours are required" });
+      }
+
+      // Get template
+      const template = await storage.getCertificateTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Certificate template not found" });
+      }
+
+      // Get member
+      const member = await storage.getUser(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      // Generate PDF
+      const pdfBuffer = await generateCertificatePDF({
+        templateImagePath: template.templateImagePath,
+        name,
+        date,
+        logoPath,
+        cpdHours: parseFloat(cpdHours),
+        textConfig: template.textConfig as any,
+      });
+
+      // Upload PDF to storage
+      const { uploadURL, objectPath } = await storageService.getUploadURL('application/pdf');
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: pdfBuffer,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload PDF: ${uploadResponse.statusText}`);
+      }
+
+      // Create document record
+      const fileName = `Certificate_${name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const document = await storage.createDocument({
+        userId: memberId,
+        fileName,
+        fileType: 'application/pdf',
+        fileSize: pdfBuffer.length,
+        objectPath,
+        category: 'certificate',
+        status: 'approved', // Auto-approved since admin generated it
+        verifiedBy: userId,
+      });
+
+      // Send email with certificate
+      try {
+        await sendCertificateEmail(
+          member.email,
+          pdfBuffer,
+          fileName,
+          `${member.firstName} ${member.lastName}`
+        );
+      } catch (emailError) {
+        console.error('Failed to send certificate email:', emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json({
+        message: "Certificate generated and sent successfully",
+        document,
+      });
+    } catch (error: any) {
+      console.error("Error generating certificate:", error);
+      res.status(500).json({ message: "Failed to generate certificate: " + error.message });
+    }
+  });
+
+  // Invoice Endpoints
+  // Admin: Generate invoice
+  app.post('/api/admin/invoices/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { memberId, memberName, memberEmail, placeOfEmployment, companyName, companyEmail, amount, description } = req.body;
+
+      if (!memberId || !memberName || !memberEmail || !amount) {
+        return res.status(400).json({ message: "Member ID, name, email, and amount are required" });
+      }
+
+      // Generate invoice number
+      const invoiceNumber = await storage.generateInvoiceNumber();
+
+      // Generate PDF
+      const pdfBuffer = await generateInvoicePDF({
+        invoiceNumber,
+        memberName,
+        memberEmail,
+        companyName,
+        companyEmail,
+        placeOfEmployment,
+        amount: parseFloat(amount),
+        description: description || 'BACO Membership Services',
+        date: new Date(),
+      });
+
+      // Upload PDF to storage
+      const { uploadURL, objectPath } = await storageService.getUploadURL('application/pdf');
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: pdfBuffer,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload PDF: ${uploadResponse.statusText}`);
+      }
+
+      // Create invoice record
+      const invoice = await storage.createInvoice({
+        invoiceNumber,
+        userId: memberId,
+        memberName,
+        memberEmail,
+        placeOfEmployment,
+        companyName,
+        companyEmail,
+        amount: amount.toString(),
+        description: description || 'BACO Membership Services',
+        status: 'sent',
+        pdfPath: objectPath,
+        generatedBy: userId,
+        isAdminGenerated: true,
+      });
+
+      // Send email with invoice
+      try {
+        const fileName = `Invoice_${invoiceNumber}.pdf`;
+        await sendInvoiceEmail(
+          memberEmail,
+          companyEmail,
+          pdfBuffer,
+          fileName,
+          invoiceNumber,
+          memberName,
+          parseFloat(amount)
+        );
+      } catch (emailError) {
+        console.error('Failed to send invoice email:', emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json({
+        message: "Invoice generated and sent successfully",
+        invoice,
+      });
+    } catch (error: any) {
+      console.error("Error generating invoice:", error);
+      res.status(500).json({ message: "Failed to generate invoice: " + error.message });
+    }
+  });
+
+  // Admin: Get all invoices
+  app.get('/api/admin/invoices', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  // Member: Request/Generate invoice (self-service)
+  app.post('/api/invoices/request', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { placeOfEmployment, companyName, companyEmail, amount, description } = req.body;
+
+      if (!amount) {
+        return res.status(400).json({ message: "Amount is required" });
+      }
+
+      // Generate invoice number
+      const invoiceNumber = await storage.generateInvoiceNumber();
+
+      // Generate PDF
+      const pdfBuffer = await generateInvoicePDF({
+        invoiceNumber,
+        memberName: `${user.firstName} ${user.lastName}`,
+        memberEmail: user.email,
+        companyName,
+        companyEmail,
+        placeOfEmployment,
+        amount: parseFloat(amount),
+        description: description || 'BACO Membership Services',
+        date: new Date(),
+      });
+
+      // Upload PDF to storage
+      const { uploadURL, objectPath } = await storageService.getUploadURL('application/pdf');
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: pdfBuffer,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload PDF: ${uploadResponse.statusText}`);
+      }
+
+      // Create invoice record
+      const invoice = await storage.createInvoice({
+        invoiceNumber,
+        userId,
+        memberName: `${user.firstName} ${user.lastName}`,
+        memberEmail: user.email,
+        placeOfEmployment,
+        companyName,
+        companyEmail,
+        amount: amount.toString(),
+        description: description || 'BACO Membership Services',
+        status: 'sent',
+        pdfPath: objectPath,
+        generatedBy: userId,
+        isAdminGenerated: false,
+      });
+
+      // Send email with invoice
+      try {
+        const fileName = `Invoice_${invoiceNumber}.pdf`;
+        await sendInvoiceEmail(
+          user.email,
+          companyEmail,
+          pdfBuffer,
+          fileName,
+          invoiceNumber,
+          `${user.firstName} ${user.lastName}`,
+          parseFloat(amount)
+        );
+      } catch (emailError) {
+        console.error('Failed to send invoice email:', emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json({
+        message: "Invoice generated and sent successfully",
+        invoice,
+      });
+    } catch (error: any) {
+      console.error("Error generating invoice:", error);
+      res.status(500).json({ message: "Failed to generate invoice: " + error.message });
+    }
+  });
+
+  // Member: Get their invoices
+  app.get('/api/invoices/my', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const invoices = await storage.getUserInvoices(userId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching user invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
 
 
 
 
+
+
+  // Admin: Deactivate user account (soft delete for retention compliance)
+  app.post('/api/admin/users/:userId/deactivate', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { userId } = req.params;
+      
+      // Prevent admin from deactivating themselves
+      if (userId === req.user?.id) {
+        return res.status(400).json({ message: "You cannot deactivate your own account" });
+      }
+
+      const deactivatedUser = await storage.deactivateUser(userId);
+      auditLog("user.deactivated", {
+        targetUserId: userId,
+        byUserId: req.user?.id,
+      });
+      res.json({ message: "User account deactivated successfully", user: deactivatedUser });
+    } catch (error: any) {
+      console.error("Error deactivating user:", error);
+      res.status(500).json({ message: error.message || "Failed to deactivate user" });
+    }
+  });
+
+  // Admin: Run retention purge script (manual trigger)
+  app.post('/api/admin/retention/purge', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Import and run the purge function
+      const { purgeRetentionData } = await import("../scripts/purge-retention-data");
+      const stats = await purgeRetentionData();
+      
+      auditLog("retention.purge.executed", {
+        byUserId: req.user?.id,
+        stats,
+      });
+      
+      res.json({
+        message: "Retention purge completed successfully",
+        stats,
+      });
+    } catch (error: any) {
+      console.error("Error running retention purge:", error);
+      res.status(500).json({ message: error.message || "Failed to run retention purge" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

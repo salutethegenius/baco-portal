@@ -15,6 +15,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Session storage table for Replit Auth
+// Data classification: technical session data (low risk, no direct PII beyond identifiers in JSON payload).
+// Typical retention: short-lived, only for active sessions and operational troubleshooting.
 export const sessions = pgTable(
   "sessions",
   {
@@ -25,7 +27,9 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Users table for email/password authentication and member management
+// Users table for authentication and member management
+// Data classification: high – includes identity, contact, membership, limited background/professional data and credentials (hashed).
+// Retention (baseline): lifetime of membership + ~6 years after last activity, subject to legal/audit needs (see DATA_INVENTORY.md).
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique().notNull(),
@@ -61,17 +65,23 @@ export const users = pgTable("users", {
   isExistingMember: boolean("is_existing_member").default(false),
   membershipNumber: varchar("membership_number"),
 
+  // Preferences
+  marketingOptIn: boolean("marketing_opt_in").default(true),
+
   // System fields
   isAdmin: boolean("is_admin").default(false),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   passwordResetToken: varchar("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
+  deletedAt: timestamp("deleted_at"), // Soft delete timestamp for retention compliance
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Events table
+// Data classification: low/medium – event metadata, no sensitive personal data.
+// Retention: keep as long as historically useful for CPD/records; can be archived rather than deleted.
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
@@ -95,6 +105,8 @@ export const events = pgTable("events", {
 });
 
 // Event registrations table
+// Data classification: medium – attendee identity and contact details, registration choices, payment metadata (no card numbers).
+// Retention: generally align with events and financial records (~6–7 years) for audit and CPD history.
 export const eventRegistrations = pgTable("event_registrations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventId: varchar("event_id").references(() => events.id).notNull(),
@@ -124,6 +136,8 @@ export const eventRegistrations = pgTable("event_registrations", {
 });
 
 // Documents table
+// Data classification: high – uploaded certifications, IDs, receipts and other supporting documents; may contain sensitive data.
+// Retention: only as long as needed to evidence membership/CPD and comply with legal obligations, then delete or anonymise.
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -140,6 +154,8 @@ export const documents = pgTable("documents", {
 });
 
 // Messages table
+// Data classification: medium – structured communications between members and admins; may include limited personal details.
+// Retention: keep for a reasonable period (e.g. up to 6 years) where relevant to membership, complaints or audit.
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   fromUserId: varchar("from_user_id").references(() => users.id).notNull(),
@@ -152,6 +168,8 @@ export const messages = pgTable("messages", {
 });
 
 // Payments table
+// Data classification: high – financial transaction metadata (amounts, currency, status); no full card numbers are stored.
+// Retention: at least 7 years or as required under Bahamian financial and tax law.
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -163,6 +181,43 @@ export const payments = pgTable("payments", {
   eventId: varchar("event_id").references(() => events.id),
   paymentDate: timestamp("payment_date").defaultNow(),
   description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Certificate templates table
+// Data classification: low – template configuration and design assets (no member PII).
+// Retention: as long as templates remain in use; can be archived when superseded.
+export const certificateTemplates = pgTable("certificate_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  templateImagePath: varchar("template_image_path").notNull(),
+  // Text positioning config (JSON with x, y, fontSize, color for each field)
+  textConfig: jsonb("text_config"),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Invoices table
+// Data classification: high – billing contact data and invoice metadata linked to members.
+// Retention: at least 7 years or longer if required by financial/tax regulations.
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar("invoice_number").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  memberName: varchar("member_name").notNull(),
+  memberEmail: varchar("member_email").notNull(),
+  placeOfEmployment: varchar("place_of_employment"),
+  companyName: varchar("company_name"),
+  companyEmail: varchar("company_email"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  status: varchar("status").default("generated"), // generated, sent, paid
+  pdfPath: varchar("pdf_path"),
+  generatedBy: varchar("generated_by").references(() => users.id),
+  isAdminGenerated: boolean("is_admin_generated").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -231,6 +286,24 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
+export const certificateTemplatesRelations = relations(certificateTemplates, ({ one }) => ({
+  creator: one(users, {
+    fields: [certificateTemplates.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  user: one(users, {
+    fields: [invoices.userId],
+    references: [users.id],
+  }),
+  generator: one(users, {
+    fields: [invoices.generatedBy],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -271,6 +344,17 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
 });
 
+export const insertCertificateTemplateSchema = createInsertSchema(certificateTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Admin update schema for event registrations
 export const updateEventRegistrationAdminSchema = z.object({
   membershipType: z.enum(["member", "non_member"]).optional(),
@@ -293,3 +377,7 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type InsertCertificateTemplate = z.infer<typeof insertCertificateTemplateSchema>;
+export type CertificateTemplate = typeof certificateTemplates.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;

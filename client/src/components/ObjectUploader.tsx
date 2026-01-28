@@ -59,8 +59,8 @@ function ObjectUploader({
   children,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
+  const [uppy] = useState(() => {
+    const uppyInstance = new Uppy({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
@@ -71,10 +71,36 @@ function ObjectUploader({
         shouldUseMultipart: false,
         getUploadParameters: onGetUploadParameters,
       })
-      .on("complete", (result) => {
-        onComplete?.(result);
+      .on("upload-success", (file, response) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ObjectUploader.tsx:upload-success',message:'Upload success event fired',data:{fileName:file.name,hasResponse:!!response,responseStatus:response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       })
-  );
+      .on("complete", (result) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ObjectUploader.tsx:complete event',message:'Upload complete event fired',data:{hasSuccessful:!!result.successful,successfulCount:result.successful?.length,hasFailed:!!result.failed,failedCount:result.failed?.length,resultKeys:Object.keys(result)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        if (result.successful && result.successful.length > 0) {
+          const firstSuccess = result.successful[0];
+          // #region agent log
+          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ObjectUploader.tsx:complete event',message:'Successful upload details',data:{uploadURL:firstSuccess.uploadURL,url:firstSuccess.url,response:firstSuccess.response,keys:Object.keys(firstSuccess)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+        }
+        onComplete?.(result);
+        // Close modal after a short delay to allow callback to process
+        setTimeout(() => {
+          setShowModal(false);
+          // Reset uppy state for next upload
+          uppyInstance.reset();
+        }, 500);
+      })
+      .on("upload-error", (file, error, response) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ObjectUploader.tsx:upload-error',message:'Upload error event',data:{error:error?.message,response:response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+      });
+    return uppyInstance;
+  });
 
   return (
     <div>
@@ -85,8 +111,13 @@ function ObjectUploader({
       <DashboardModal
         uppy={uppy}
         open={showModal}
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={() => {
+          setShowModal(false);
+          uppy.reset();
+        }}
         proudlyDisplayPoweredByUppy={false}
+        closeAfterFinish={true}
+        closeModalOnClickOutside={true}
       />
     </div>
   );

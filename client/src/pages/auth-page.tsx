@@ -277,6 +277,19 @@ export default function AuthPage() {
                   </Button>
                 </a>
               </div>
+              <div className="mt-4 text-center text-xs text-gray-500 space-x-2">
+                <Link href="/privacy">
+                  <span className="underline cursor-pointer hover:text-baco-primary">
+                    Privacy Notice
+                  </span>
+                </Link>
+                <span>•</span>
+                <Link href="/terms">
+                  <span className="underline cursor-pointer hover:text-baco-primary">
+                    Terms of Use
+                  </span>
+                </Link>
+              </div>
             </div>
 
             {/* Hero Section */}

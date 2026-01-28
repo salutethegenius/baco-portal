@@ -6,12 +6,15 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+  address?: string;
   membershipStatus: string;
   membershipType?: string;
   joinDate?: string;
   annualFee?: string;
   nextPaymentDate?: string;
   isAdmin: boolean;
+  marketingOptIn?: boolean;
   createdAt?: string;
 }
 

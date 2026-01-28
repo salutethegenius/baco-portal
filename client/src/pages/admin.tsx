@@ -26,6 +26,10 @@ import ObjectUploader from "@/components/ObjectUploader";
 import { Award } from "lucide-react";
 import RegistrationAdminEdit from "@/components/RegistrationAdminEdit";
 import AdminMessagesTab from "@/components/AdminMessagesTab";
+import CertificateTemplateUploader from "@/components/CertificateTemplateUploader";
+import CertificateGenerator from "@/components/CertificateGenerator";
+import InvoiceGenerator from "@/components/InvoiceGenerator";
+import AdminInvoicesTab from "@/components/AdminInvoicesTab";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -439,6 +443,8 @@ export default function Admin() {
             <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
             <TabsTrigger value="landing-pages" data-testid="tab-landing-pages">Event Landing Pages</TabsTrigger>
             <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+            <TabsTrigger value="certificates" data-testid="tab-certificates">Certificates</TabsTrigger>
+            <TabsTrigger value="invoices" data-testid="tab-invoices">Invoices</TabsTrigger>
             <TabsTrigger value="messages" data-testid="tab-messages">Messages</TabsTrigger>
           </TabsList>
 
@@ -1058,9 +1064,19 @@ export default function Admin() {
                             variant="default"
                             onClick={() => {
                               const eventId = selectedEventForRegistrations?.id;
-                              if (eventId) {
-                                window.location.href = `/api/admin/events/${eventId}/registrations/export`;
+                              if (!eventId) return;
+                              
+                              const reason = window.prompt(
+                                "Please enter a short reason for exporting this registration list (for audit purposes):"
+                              );
+                              if (!reason) {
+                                return;
                               }
+
+                              const url = `/api/admin/events/${eventId}/registrations/export?reason=${encodeURIComponent(
+                                reason
+                              )}`;
+                              window.location.href = url;
                             }}
                             disabled={eventRegistrations.length === 0}
                             data-testid="button-export-csv"
@@ -1409,6 +1425,20 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <div className="space-y-8">
+              <CertificateGenerator />
+              <CertificateTemplateUploader />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <div className="space-y-8">
+              <InvoiceGenerator />
+              <AdminInvoicesTab />
+            </div>
           </TabsContent>
 
           <TabsContent value="messages">

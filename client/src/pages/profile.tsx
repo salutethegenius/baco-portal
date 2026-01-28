@@ -22,6 +22,7 @@ const profileSchema = z.object({
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
   address: z.string().optional(),
+  marketingOptIn: z.boolean().optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -41,7 +42,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
 
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [] } = useQuery<any[]>({
     queryKey: ["/api/payments/my"],
   });
 
@@ -53,6 +54,7 @@ export default function Profile() {
       email: user?.email || "",
       phone: user?.phone || "",
       address: user?.address || "",
+      marketingOptIn: user?.marketingOptIn ?? true,
     },
   });
 
@@ -89,6 +91,7 @@ export default function Profile() {
       email: user?.email || "",
       phone: user?.phone || "",
       address: user?.address || "",
+      marketingOptIn: user?.marketingOptIn ?? true,
     });
     setIsEditing(false);
   };
@@ -235,6 +238,7 @@ export default function Profile() {
             <TabsTrigger value="password" data-testid="tab-password">Change Password</TabsTrigger>
             <TabsTrigger value="membership" data-testid="tab-membership">Membership</TabsTrigger>
             <TabsTrigger value="payments" data-testid="tab-payments">Payment History</TabsTrigger>
+            <TabsTrigger value="privacy" data-testid="tab-privacy">Account & Privacy</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -429,7 +433,7 @@ export default function Profile() {
                         }
                         data-testid="badge-membership-status"
                       >
-                        {user?.membershipStatus?.charAt(0).toUpperCase() + user?.membershipStatus?.slice(1) || 'Pending'}
+                        {user?.membershipStatus ? user.membershipStatus.charAt(0).toUpperCase() + user.membershipStatus.slice(1) : 'Pending'}
                       </Badge>
                     </div>
                   </div>
@@ -507,6 +511,152 @@ export default function Profile() {
                     <p className="text-gray-500">Your payment history will appear here.</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="privacy">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account & Privacy</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-900">Marketing preferences</h3>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Control whether BACO may send you occasional updates about events, trainings and membership news.
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      id="marketingOptIn"
+                      type="checkbox"
+                      checked={!!form.watch("marketingOptIn")}
+                      onChange={(e) => form.setValue("marketingOptIn", e.target.checked)}
+                      className="h-4 w-4"
+                      data-testid="checkbox-marketing-opt-in"
+                    />
+                    <label htmlFor="marketingOptIn" className="text-sm text-gray-800 cursor-pointer">
+                      I would like to receive BACO updates and event information by email.
+                    </label>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">Download your data</h3>
+                  <p className="text-xs text-gray-600">
+                    Get a machine-readable copy of your core account, event, payment and document information as stored in the portal.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const response = await apiRequest("GET", "/api/privacy/my-data");
+                        if (!response.ok) {
+                          throw new Error("Failed to generate data export");
+                        }
+                        const data = await response.json();
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = "baco-account-data.json";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      } catch (error: any) {
+                        toast({
+                          title: "Export Failed",
+                          description: error.message || "Could not download your data.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    data-testid="button-download-my-data"
+                  >
+                    Download my data
+                  </Button>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">Request data correction</h3>
+                  <p className="text-xs text-gray-600">
+                    If you see information that you cannot change yourself and believe it is inaccurate, you can ask BACO to correct it.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const details = window.prompt(
+                        "Please describe what needs to be corrected (for example, which field and the correct value)."
+                      );
+                      if (!details) return;
+                      try {
+                        const response = await apiRequest("POST", "/api/privacy/request-correction", { details });
+                        if (!response.ok) {
+                          const error = await response.json().catch(() => null);
+                          throw new Error(error?.message || "Failed to submit correction request");
+                        }
+                        toast({
+                          title: "Request submitted",
+                          description: "Your correction request has been sent to BACO.",
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: "Request Failed",
+                          description: error.message || "Could not submit your request.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    data-testid="button-request-correction"
+                  >
+                    Request a correction
+                  </Button>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">Request account deletion/deactivation</h3>
+                  <p className="text-xs text-gray-600">
+                    You may ask BACO to deactivate or delete your account. Some records (for example invoices) may need to be kept for legal or audit reasons.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      const confirm = window.confirm(
+                        "This will send a request to BACO to deactivate or delete your account. BACO will review and respond.\n\nDo you want to continue?"
+                      );
+                      if (!confirm) return;
+                      const reason = window.prompt("Optionally, provide a reason or additional context for your request:");
+                      try {
+                        const response = await apiRequest("POST", "/api/privacy/request-deletion", { reason });
+                        if (!response.ok) {
+                          const error = await response.json().catch(() => null);
+                          throw new Error(error?.message || "Failed to submit deletion request");
+                        }
+                        toast({
+                          title: "Request submitted",
+                          description:
+                            "Your request has been sent to BACO. They may contact you if they need more information.",
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: "Request Failed",
+                          description: error.message || "Could not submit your request.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    data-testid="button-request-deletion"
+                  >
+                    Request account deletion/deactivation
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
