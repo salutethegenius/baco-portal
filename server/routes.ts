@@ -8,15 +8,15 @@ import QRCode from "qrcode";
 import { SupabaseStorageService } from "./awsStorage";
 import { sendEventRegistrationConfirmationEmail, sendDocumentApprovalEmail, sendDocumentRejectionEmail, sendCertificateEmail, sendInvoiceEmail } from "./email";
 import { generateCertificatePDF, generateInvoicePDF } from "./pdfGenerator";
-import Stripe from "stripe";
 
-// Initialize Stripe (optional - graceful fallback if keys not set)
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+// CNG (Cash N' Go) payment gateway config
+const cngAuthId = process.env.CNG_AUTH_ID;
+const cngApiKey = process.env.CNG_API_KEY;
+const cngEndpoint = process.env.CNG_ENDPOINT || "https://paylanes-qa.sprocket.solutions/merchant/web-payment/auth";
+const appUrl = process.env.APP_URL || "http://localhost:5000";
 
-if (!stripe) {
-  console.warn("⚠️ STRIPE_SECRET_KEY not set - payment processing will be unavailable");
+if (!cngAuthId || !cngApiKey) {
+  console.warn("⚠️ CNG_AUTH_ID or CNG_API_KEY not set - payment processing will be unavailable");
 }
 
 // Lightweight server-side audit helper – keep payloads minimal to avoid logging sensitive data
@@ -727,147 +727,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe payment routes
-  app.post('/api/create-payment-intent', isAuthenticated, async (req: any, res) => {
-    if (!stripe) {
-      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
+  // CNG (Cash N' Go) payment routes
+  app.post('/api/cng/create-payment', isAuthenticated, async (req: any, res) => {
+    if (!cngAuthId || !cngApiKey) {
+      return res.status(503).json({ message: "Payment processing unavailable - CNG not configured" });
     }
 
     try {
       const { amount, type, eventId, description } = req.body;
       const userId = req.user.id;
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/cng/create-payment',message:'create-payment entry',data:{type,eventId:eventId??null,amountRaw:amount,userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+      // #endregion
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        metadata: {
-          userId,
-          type,
-          eventId: eventId || "",
-          description: description || "",
-        },
-      });
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum < 1) {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment validation',message:'amount validation failed',data:{amountNum:Number.isNaN(amountNum)?null:amountNum},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
+        return res.status(400).json({ message: "Amount must be at least 1.00" });
+      }
 
-      // Create payment record
+      // For event payments, ensure an event registration exists (create pending if not) so callback can update it
+      let registrationCreated = false;
+      if (type === "event" && eventId) {
+        const event = await storage.getEvent(eventId);
+        if (!event) {
+          // #region agent log
+          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment event',message:'event not found',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+          // #endregion
+          return res.status(404).json({ message: "Event not found" });
+        }
+        let registration = await storage.getUserEventRegistration(userId, eventId);
+        if (!registration) {
+          const user = await storage.getUser(userId);
+          if (!user) {
+            return res.status(401).json({ message: "User not found" });
+          }
+          registration = await storage.createEventRegistration({
+            eventId,
+            userId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            paymentMethod: "paylanes",
+            paymentAmount: amountNum.toFixed(2),
+            paymentStatus: "pending",
+          });
+          registrationCreated = true;
+        }
+      }
+
+      const orderNumber = `BACO-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
       await storage.createPayment({
         userId,
-        amount: amount.toString(),
+        amount: amountNum.toFixed(2),
         type,
-        eventId,
-        description,
-        stripePaymentIntentId: paymentIntent.id,
+        eventId: eventId || undefined,
+        description: description || "",
+        orderNumber,
         status: "pending",
       });
 
-      res.json({ clientSecret: paymentIntent.client_secret });
+      // Use clean callback URLs so CNG can append ?ORDER_NUMBER=...&STATUS=... (some gateways drop or overwrite existing query params)
+      const baseUrl = appUrl.replace(/\/$/, "");
+      const urlSuccess = `${baseUrl}/api/cng/callback`;
+      const urlCancel = `${baseUrl}/api/cng/callback`;
+
+      const params = new URLSearchParams({
+        AUTH_ID: cngAuthId,
+        API_KEY: cngApiKey,
+        AMOUNT: amountNum.toFixed(2),
+        URL_SUCCESS: urlSuccess,
+        URL_CANCEL: urlCancel,
+        ORDER_NUMBER: orderNumber,
+        PAYMENT_OPTIONS: "card,mmx,cng,sd",
+      });
+
+      const redirectUrl = `${cngEndpoint}?${params.toString()}`;
+
+      // Store order in session so callback can recover if CNG redirects without query params (e.g. sandbox quirk)
+      if (req.session) {
+        (req.session as any).pendingCngOrderNumber = orderNumber;
+      }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment exit',message:'payment created',data:{orderNumber,type,eventId:eventId??null,registrationCreated:type==='event'&&!!eventId?(registrationCreated as boolean):undefined,redirectUrl,urlSuccess,urlCancel,cngEndpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H6'})}).catch(()=>{});
+      // #endregion
+
+      res.json({ redirectUrl, orderNumber });
     } catch (error: any) {
-      console.error("Error creating payment intent:", error);
-      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+      console.error("Error creating CNG payment:", error);
+      res.status(500).json({ message: "Error creating payment: " + error.message });
     }
   });
 
-  // Confirm payment and update status
-  app.post('/api/confirm-payment', isAuthenticated, async (req: any, res) => {
-    if (!stripe) {
-      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
-    }
-
+  // CNG callback - CNG redirects user here after payment; we update payment and redirect to frontend
+  app.get('/api/cng/callback', async (req: any, res) => {
     try {
-      const { paymentIntentId } = req.body;
-      const userId = req.user.id;
+      // CNG appends ORDER_NUMBER, STATUS, etc.; support both casing in case gateway varies
+      let orderNumber = (req.query.ORDER_NUMBER ?? req.query.order_number) as string | undefined;
+      const status = (req.query.STATUS ?? req.query.status) as string | undefined;
+      const paymentId = (req.query.PAYMENT_ID ?? req.query.payment_id) as string | undefined;
+      const paymentPlatform = (req.query.PAYMENT_PLATFORM ?? req.query.payment_platform) as string | undefined;
 
-      // Retrieve payment intent to verify status
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      // #region agent log
+      const queryKeys = Object.keys(req.query || {});
+      const hasSession = !!req.session;
+      const pendingFromSession = hasSession ? (req.session as any).pendingCngOrderNumber : undefined;
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:GET /api/cng/callback',message:'callback entry',data:{queryKeys,queryCount:queryKeys.length,hasSession,hasPendingInSession:!!pendingFromSession,orderFromQuery:!!orderNumber?.trim(),status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
 
-      if (paymentIntent.status === 'succeeded') {
-        // Update payment record
-        await storage.updatePaymentByStripeId(paymentIntentId, 'completed');
-
-        // If this is a membership payment, update user status
-        if (paymentIntent.metadata.type === 'subscription' || paymentIntent.metadata.type === 'membership') {
-          await storage.updateUserMembershipStatus(userId, 'active');
+      // Fallback: CNG sandbox (and some gateways) may redirect with no query params; recover order from session
+      if (!orderNumber?.trim() && req.session) {
+        const pending = (req.session as any).pendingCngOrderNumber as string | undefined;
+        if (pending?.trim()) {
+          orderNumber = pending;
+          delete (req.session as any).pendingCngOrderNumber;
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[CNG callback] No query params; using order from session:", orderNumber);
+          }
+          // #region agent log
+          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback session fallback',message:'using order from session',data:{orderNumber},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
+          // #endregion
         }
-
-        res.json({ success: true, status: paymentIntent.status });
-      } else {
-        res.json({ success: false, status: paymentIntent.status });
       }
+
+      if (!orderNumber?.trim()) {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback missing order',message:'redirect missing_order',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
+        // #endregion
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[CNG callback] Missing ORDER_NUMBER. Query:", JSON.stringify(req.query));
+        }
+        return res.redirect(`${appUrl}/payment/cancel?error=missing_order`);
+      }
+
+      const payment = await storage.getPaymentByOrderNumber(orderNumber.trim());
+      // #region agent log
+      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback payment lookup',message:'getPaymentByOrderNumber result',data:{orderNumber:orderNumber.trim(),paymentFound:!!payment,paymentId:payment?.id??null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H4'})}).catch(()=>{});
+      // #endregion
+      if (!payment) {
+        return res.redirect(`${appUrl}/payment/cancel?error=unknown_order`);
+      }
+
+      if (status === "PAID") {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome PAID',data:{orderNumber:orderNumber.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        await storage.updatePaymentByOrderNumber(orderNumber.trim(), "completed", paymentId, paymentPlatform || undefined);
+        if (payment.type === "membership" || payment.type === "subscription") {
+          await storage.updateUserMembershipStatus(payment.userId, "active");
+        }
+        if (payment.type === "event" && payment.eventId) {
+          const registration = await storage.getUserEventRegistration(payment.userId, payment.eventId);
+          if (registration) {
+            await storage.updateEventRegistrationPayment(registration.id, "paid", paymentId);
+          }
+        }
+        return res.redirect(`${appUrl}/payment/success?order=${encodeURIComponent(orderNumber.trim())}`);
+      }
+
+      if (status === "CANCELLED") {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome CANCELLED',data:{orderNumber:orderNumber.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        await storage.updatePaymentByOrderNumber(orderNumber.trim(), "failed");
+        return res.redirect(`${appUrl}/payment/cancel?order=${encodeURIComponent(orderNumber.trim())}`);
+      }
+
+      // No STATUS from CNG (e.g. sandbox redirects with empty query) – we recovered order from session but can't confirm result
+      if (!status) {
+        // #region agent log
+        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome verification_pending (no status)',data:{orderNumber:orderNumber.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        return res.redirect(`${appUrl}/payment/cancel?error=verification_pending&order=${encodeURIComponent(orderNumber.trim())}`);
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[CNG callback] Unrecognized status. Query:", JSON.stringify(req.query));
+      }
+      return res.redirect(`${appUrl}/payment/cancel?error=unknown_status`);
     } catch (error: any) {
-      console.error("Error confirming payment:", error);
-      res.status(500).json({ message: "Error confirming payment: " + error.message });
+      console.error("Error in CNG callback:", error);
+      return res.redirect(`${appUrl}/payment/cancel?error=server_error`);
     }
   });
 
-  // Check if Stripe is available
-  app.get('/api/stripe-status', (req, res) => {
-    res.json({ available: !!stripe });
-  });
-
-  // Stripe subscription for membership fees
-  app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
-    if (!stripe) {
-      return res.status(503).json({ message: "Payment processing unavailable - Stripe not configured" });
-    }
-
-    try {
-      const userId = req.user.id;
-      let user = await storage.getUser(userId);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-
-        res.json({
-          subscriptionId: subscription.id,
-          clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
-        });
-        return;
-      }
-
-      if (!user.email) {
-        return res.status(400).json({ message: "User email is required for subscription" });
-      }
-
-      // Create Stripe customer
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-      });
-
-      // Create a price for the subscription
-      const price = await stripe.prices.create({
-        currency: 'usd',
-        unit_amount: Math.round(parseFloat(user.annualFee || "350") * 100),
-        recurring: {
-          interval: 'year',
-        },
-        product_data: {
-          name: 'BACO Membership',
-        },
-      });
-
-      // Create subscription
-      const subscription = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [{ price: price.id }],
-        payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
-      });
-
-      // Update user with Stripe info
-      user = await storage.updateUserStripeInfo(userId, customer.id, subscription.id);
-
-      res.json({
-        subscriptionId: subscription.id,
-        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
-      });
-    } catch (error: any) {
-      console.error("Error creating subscription:", error);
-      res.status(500).json({ message: "Error creating subscription: " + error.message });
-    }
+  // Check if CNG is available
+  app.get('/api/cng/status', (req, res) => {
+    res.json({ available: !!(cngAuthId && cngApiKey) });
   });
 
 
