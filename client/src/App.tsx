@@ -23,6 +23,9 @@ import ResetPassword from "@/pages/reset-password";
 import RequestInvoice from "@/pages/request-invoice";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import PaymentSuccess from "@/pages/payment-success";
+import PaymentCancel from "@/pages/payment-cancel";
+import TestPayment from "@/pages/test-payment";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -48,6 +51,8 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/payment/success" component={PaymentSuccess} />
+      <Route path="/payment/cancel" component={PaymentCancel} />
 
       {/* Authentication route */}
       <Route path="/auth" component={AuthPage} />
@@ -69,6 +74,7 @@ function Router() {
           <Route path="/checkout/:type" component={Checkout} />
           <Route path="/checkout/:type/:id" component={Checkout} />
           <Route path="/request-invoice" component={RequestInvoice} />
+          <Route path="/test-payment" component={TestPayment} />
         </>
       )}
       <Route component={NotFound} />
