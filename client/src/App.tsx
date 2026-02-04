@@ -53,6 +53,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
+      <Route path="/test-payment" component={TestPayment} />
 
       {/* Authentication route */}
       <Route path="/auth" component={AuthPage} />
@@ -74,7 +75,6 @@ function Router() {
           <Route path="/checkout/:type" component={Checkout} />
           <Route path="/checkout/:type/:id" component={Checkout} />
           <Route path="/request-invoice" component={RequestInvoice} />
-          <Route path="/test-payment" component={TestPayment} />
         </>
       )}
       <Route component={NotFound} />
