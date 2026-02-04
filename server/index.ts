@@ -8,17 +8,17 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 
-// Security middleware with Stripe-compatible CSP
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://*.supabase.co"],
-      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+      connectSrc: ["'self'", "https://*.supabase.co", "https://paylanes.sprocket.solutions", "https://paylanes-qa.sprocket.solutions"],
+      frameSrc: ["'self'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },

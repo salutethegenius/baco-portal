@@ -61,7 +61,7 @@ export interface IStorage {
   getUserEventRegistrations(userId: string): Promise<(EventRegistration & { event: Event })[]>;
   getUserEventRegistration(userId: string, eventId: string): Promise<EventRegistration | undefined>;
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
-  updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration>;
+  updateEventRegistrationPayment(id: string, paymentStatus: string, externalPaymentId?: string): Promise<EventRegistration>;
   updateEventRegistration(id: string, updates: Partial<EventRegistration>): Promise<EventRegistration>;
 
   // Document operations
@@ -82,7 +82,9 @@ export interface IStorage {
   getUserPayments(userId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string): Promise<Payment>;
-  updatePaymentByStripeId(stripePaymentIntentId: string, status: string): Promise<Payment | undefined>;
+  updatePaymentByExternalId(externalPaymentId: string, status: string, paymentPlatform?: string): Promise<Payment | undefined>;
+  getPaymentByOrderNumber(orderNumber: string): Promise<Payment | undefined>;
+  updatePaymentByOrderNumber(orderNumber: string, status: string, externalPaymentId?: string, paymentPlatform?: string): Promise<Payment | undefined>;
 
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -444,12 +446,12 @@ export class DatabaseStorage implements IStorage {
     return registration;
   }
 
-  async updateEventRegistrationPayment(id: string, paymentStatus: string, stripePaymentIntentId?: string): Promise<EventRegistration> {
+  async updateEventRegistrationPayment(id: string, paymentStatus: string, externalPaymentId?: string): Promise<EventRegistration> {
     const [registration] = await db
       .update(eventRegistrations)
       .set({
         paymentStatus,
-        stripePaymentIntentId,
+        externalPaymentId,
       })
       .where(eq(eventRegistrations.id, id))
       .returning();
@@ -584,11 +586,33 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
-  async updatePaymentByStripeId(stripePaymentIntentId: string, status: string): Promise<Payment | undefined> {
+  async updatePaymentByExternalId(externalPaymentId: string, status: string, paymentPlatform?: string): Promise<Payment | undefined> {
     const [payment] = await db
       .update(payments)
-      .set({ status })
-      .where(eq(payments.stripePaymentIntentId, stripePaymentIntentId))
+      .set({ status, ...(paymentPlatform && { paymentPlatform }) })
+      .where(eq(payments.externalPaymentId, externalPaymentId))
+      .returning();
+    return payment;
+  }
+
+  async getPaymentByOrderNumber(orderNumber: string): Promise<Payment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.orderNumber, orderNumber))
+      .limit(1);
+    return payment;
+  }
+
+  async updatePaymentByOrderNumber(orderNumber: string, status: string, externalPaymentId?: string, paymentPlatform?: string): Promise<Payment | undefined> {
+    const [payment] = await db
+      .update(payments)
+      .set({
+        status,
+        ...(externalPaymentId && { externalPaymentId }),
+        ...(paymentPlatform && { paymentPlatform }),
+      })
+      .where(eq(payments.orderNumber, orderNumber))
       .returning();
     return payment;
   }

@@ -15,7 +15,7 @@ import { queryClient } from "@/lib/queryClient";
 export default function EventRegistration() {
   const params = useParams();
   const slug = params.slug;
-  const eventId = params.eventId;
+  const eventId = params.eventId; // may be undefined when route is /events/:slug/register
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -35,15 +35,23 @@ export default function EventRegistration() {
       setIsRegistering(true);
 
       if (event.price > 0) {
-        // For paid events, redirect to Paylanes payment system
-        const paymentUrl = `https://paylanes.sprocket.solutions/merchant/paynow/POQF10X7?amount=${event.price}&description=Event Registration: ${encodeURIComponent(event.title)}`;
-        window.location.href = paymentUrl;
+        // For paid events, go to CNG checkout (payment + registration updated on callback)
+        navigate(`/checkout/event/${event.id}`);
         return;
       }
 
-      // Register for free events directly
+      // Register for free events directly (API requires fullName and email)
+      const first = user?.firstName ?? "";
+      const last = user?.lastName ?? "";
+      const fullName = (first + " " + last).trim() || undefined;
+      const email = user?.email;
+      if (!fullName || !email) {
+        throw new Error("Please ensure your profile has a name and email.");
+      }
       await apiRequest("POST", "/api/event-registrations", {
-        eventId: eventId,
+        eventId: event.id,
+        fullName,
+        email,
         paymentAmount: "0.00",
       });
     },
@@ -68,8 +76,9 @@ export default function EventRegistration() {
     },
   });
 
+  const resolvedEventId = event?.id ?? eventId;
   const isAlreadyRegistered = myRegistrations.some(
-    (reg: any) => reg.eventId === eventId || reg.event?.id === eventId
+    (reg: any) => reg.eventId === resolvedEventId || reg.event?.id === resolvedEventId
   );
 
   if (!slug && !eventId) {

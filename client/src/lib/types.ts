@@ -58,7 +58,7 @@ export interface EventRegistration {
   registrationDate: string;
   paymentStatus: string;
   paymentAmount?: string;
-  stripePaymentIntentId?: string;
+  externalPaymentId?: string;
   membershipType?: string;
   isPaid: boolean;
   paymentMethodTracking?: string;
@@ -100,7 +100,9 @@ export interface Payment {
   currency: string;
   type: string;
   status: string;
-  stripePaymentIntentId?: string;
+  externalPaymentId?: string;
+  paymentPlatform?: string;
+  orderNumber?: string;
   eventId?: string;
   paymentDate: string;
   description?: string;
@@ -117,6 +119,6 @@ export interface UnreadCount {
   count: number;
 }
 
-export interface StripeStatus {
+export interface CngPaymentStatus {
   available: boolean;
 }
