@@ -123,7 +123,7 @@ export const eventRegistrations = pgTable("event_registrations", {
   registrationDate: timestamp("registration_date").defaultNow(),
   paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
   paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }),
-  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  externalPaymentId: varchar("external_payment_id"), // CNG PAYMENT_ID or legacy Stripe ID
   
   // Admin management fields
   membershipType: varchar("membership_type"), // "member", "non_member" - editable by admin
@@ -177,7 +177,9 @@ export const payments = pgTable("payments", {
   currency: varchar("currency").default("BSD"),
   type: varchar("type").notNull(), // membership, event, other
   status: varchar("status").default("pending"), // pending, completed, failed, refunded
-  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  externalPaymentId: varchar("external_payment_id"), // CNG PAYMENT_ID or legacy Stripe ID
+  paymentPlatform: varchar("payment_platform"), // SandDollar, CashNGo, MoneyMaxx, Card
+  orderNumber: varchar("order_number"), // CNG ORDER_NUMBER for callback lookup
   eventId: varchar("event_id").references(() => events.id),
   paymentDate: timestamp("payment_date").defaultNow(),
   description: text("description"),
