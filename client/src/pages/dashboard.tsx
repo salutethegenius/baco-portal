@@ -196,12 +196,12 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
-                  className="w-full bg-baco-primary hover:bg-baco-secondary"
-                  onClick={() => navigate("/checkout/membership")}
+                  className="w-full bg-gray-400 cursor-not-allowed"
+                  disabled
                   data-testid="button-make-payment"
                 >
                   <i className="fas fa-credit-card mr-2"></i>
-                  Make Payment
+                  Payment Temporarily Unavailable
                 </Button>
                 <Button
                   variant="outline"

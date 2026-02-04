@@ -123,6 +123,12 @@ export default function Checkout() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+          <p className="text-sm text-amber-800">
+            <strong>Payments temporarily disabled.</strong> Online payment processing is under maintenance. Please contact BACO administration to complete your payment.
+          </p>
+        </div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Payment</h1>
           <p className="text-gray-600">

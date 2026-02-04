@@ -35,8 +35,12 @@ export default function EventRegistration() {
       setIsRegistering(true);
 
       if (event.price > 0) {
-        // For paid events, go to CNG checkout (payment + registration updated on callback)
-        navigate(`/checkout/event/${event.id}`);
+        toast({
+          title: "Payments Temporarily Unavailable",
+          description: "Online payments are temporarily disabled. Please contact BACO for registration.",
+          variant: "destructive",
+        });
+        setIsRegistering(false);
         return;
       }
 

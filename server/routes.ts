@@ -518,20 +518,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Storage/Upload routes
   app.post('/api/objects/upload', isAuthenticated, async (req: any, res) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Upload URL request',data:{fileType:req.body.fileType,userId:req.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     try {
       const { fileType } = req.body;
       const { uploadURL, objectPath } = await storageService.getUploadURL(fileType);
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Upload URL generated',data:{hasUploadURL:!!uploadURL,hasObjectPath:!!objectPath,objectPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       res.json({ uploadURL, objectPath });
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/objects/upload',message:'Error generating upload URL',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       console.error("Error generating upload URL:", error);
       res.status(500).json({ message: "Failed to generate upload URL" });
     }
@@ -550,17 +541,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put('/api/documents/upload', isAuthenticated, async (req: any, res) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Document upload request',data:{userId:req.user?.id,hasObjectURL:!!req.body.objectURL,objectURL:req.body.objectURL?.substring(0,100),fileName:req.body.fileName,category:req.body.category},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     try {
       const userId = req.user.id;
       const { fileName, fileType, fileSize, objectURL, category } = req.body;
 
       if (!objectURL) {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Missing objectURL',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         return res.status(400).json({ message: "Object URL is required" });
       }
 
@@ -581,9 +566,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           objectPath = pathParts.slice(-2).join('/');
         }
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Extracted object path',data:{objectPath,originalURL:objectURL.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
 
       const document = await storage.createDocument({
         userId,
@@ -593,14 +575,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         objectPath: objectPath,
         category: category || 'other',
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Document created successfully',data:{documentId:document.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       res.json(document);
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:PUT /api/documents/upload',message:'Error creating document',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       console.error("Error creating document:", error);
       res.status(500).json({ message: "Failed to create document: " + error.message });
     }
@@ -736,15 +712,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount, type, eventId, description } = req.body;
       const userId = req.user.id;
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/cng/create-payment',message:'create-payment entry',data:{type,eventId:eventId??null,amountRaw:amount,userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
-      // #endregion
 
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum < 1) {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment validation',message:'amount validation failed',data:{amountNum:Number.isNaN(amountNum)?null:amountNum},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
-        // #endregion
         return res.status(400).json({ message: "Amount must be at least 1.00" });
       }
 
@@ -753,9 +723,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (type === "event" && eventId) {
         const event = await storage.getEvent(eventId);
         if (!event) {
-          // #region agent log
-          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment event',message:'event not found',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
-          // #endregion
           return res.status(404).json({ message: "Event not found" });
         }
         let registration = await storage.getUserEventRegistration(userId, eventId);
@@ -812,10 +779,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (req.session as any).pendingCngOrderNumber = orderNumber;
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:create-payment exit',message:'payment created',data:{orderNumber,type,eventId:eventId??null,registrationCreated:type==='event'&&!!eventId?(registrationCreated as boolean):undefined,redirectUrl,urlSuccess,urlCancel,cngEndpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H6'})}).catch(()=>{});
-      // #endregion
-
       res.json({ redirectUrl, orderNumber });
     } catch (error: any) {
       console.error("Error creating CNG payment:", error);
@@ -832,14 +795,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentId = (req.query.PAYMENT_ID ?? req.query.payment_id) as string | undefined;
       const paymentPlatform = (req.query.PAYMENT_PLATFORM ?? req.query.payment_platform) as string | undefined;
 
-      // #region agent log
-      const queryKeys = Object.keys(req.query || {});
-      const hasSession = !!req.session;
-      const pendingFromSession = hasSession ? (req.session as any).pendingCngOrderNumber : undefined;
-      const fullQuery = JSON.stringify(req.query || {});
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:GET /api/cng/callback',message:'callback entry',data:{queryKeys,queryCount:queryKeys.length,hasSession,hasPendingInSession:!!pendingFromSession,orderFromQuery:!!orderNumber?.trim(),status,paymentId,paymentPlatform,fullQuery,cngEndpointUsed:cngEndpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-
       // Fallback: CNG sandbox (and some gateways) may redirect with no query params; recover order from session
       if (!orderNumber?.trim() && req.session) {
         const pending = (req.session as any).pendingCngOrderNumber as string | undefined;
@@ -849,16 +804,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (process.env.NODE_ENV === "development") {
             console.warn("[CNG callback] No query params; using order from session:", orderNumber);
           }
-          // #region agent log
-          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback session fallback',message:'using order from session',data:{orderNumber},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-          // #endregion
         }
       }
 
       if (!orderNumber?.trim()) {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback missing order',message:'redirect missing_order',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
         if (process.env.NODE_ENV === "development") {
           console.warn("[CNG callback] Missing ORDER_NUMBER. Query:", JSON.stringify(req.query));
         }
@@ -866,52 +815,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payment = await storage.getPaymentByOrderNumber(orderNumber.trim());
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback payment lookup',message:'getPaymentByOrderNumber result',data:{orderNumber:orderNumber.trim(),paymentFound:!!payment,paymentId:payment?.id??null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
       if (!payment) {
         return res.redirect(`${appUrl}/payment/cancel?error=unknown_order`);
       }
 
       if (status === "PAID") {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome PAID',data:{orderNumber:orderNumber.trim(),paymentType:payment.type,eventId:payment.eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        const updatedPayment = await storage.updatePaymentByOrderNumber(orderNumber.trim(), "completed", paymentId, paymentPlatform || undefined);
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback post-update',message:'payment updated',data:{updatedPaymentId:updatedPayment?.id,updatedStatus:updatedPayment?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
+        await storage.updatePaymentByOrderNumber(orderNumber.trim(), "completed", paymentId, paymentPlatform || undefined);
         if (payment.type === "membership" || payment.type === "subscription") {
           await storage.updateUserMembershipStatus(payment.userId, "active");
         }
         if (payment.type === "event" && payment.eventId) {
           const registration = await storage.getUserEventRegistration(payment.userId, payment.eventId);
-          // #region agent log
-          fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback event reg',message:'event registration lookup',data:{registrationFound:!!registration,registrationId:registration?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
-          // #endregion
           if (registration) {
             await storage.updateEventRegistrationPayment(registration.id, "paid", paymentId);
-            // #region agent log
-            fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback event reg updated',message:'event registration payment updated',data:{registrationId:registration.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
-            // #endregion
           }
         }
         return res.redirect(`${appUrl}/payment/success?order=${encodeURIComponent(orderNumber.trim())}`);
       }
 
       if (status === "CANCELLED") {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome CANCELLED',data:{orderNumber:orderNumber.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
         await storage.updatePaymentByOrderNumber(orderNumber.trim(), "failed");
         return res.redirect(`${appUrl}/payment/cancel?order=${encodeURIComponent(orderNumber.trim())}`);
       }
 
       // No STATUS from CNG (e.g. sandbox redirects with empty query) – we recovered order from session but can't confirm result
       if (!status) {
-        // #region agent log
-        fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback branch',message:'outcome verification_pending (no status)',data:{orderNumber:orderNumber.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
         return res.redirect(`${appUrl}/payment/cancel?error=verification_pending&order=${encodeURIComponent(orderNumber.trim())}`);
       }
 
@@ -928,13 +856,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CNG callback POST handler - some gateways POST the callback data
   app.post('/api/cng/callback', async (req: any, res) => {
     try {
-      // #region agent log
-      const bodyKeys = Object.keys(req.body || {});
-      const fullBody = JSON.stringify(req.body || {});
-      console.log("[CNG callback POST] Body:", fullBody);
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:POST /api/cng/callback',message:'POST callback entry',data:{bodyKeys,fullBody},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H8'})}).catch(()=>{});
-      // #endregion
-
       // CNG might POST the data instead of using query params
       let orderNumber = (req.body.ORDER_NUMBER ?? req.body.order_number) as string | undefined;
       const status = (req.body.STATUS ?? req.body.status) as string | undefined;
@@ -988,13 +909,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CNG success callback - user completed payment
   app.get('/api/cng/callback/success', async (req: any, res) => {
     try {
-      // #region agent log
-      const queryKeys = Object.keys(req.query || {});
-      const fullQuery = JSON.stringify(req.query || {});
-      const pendingFromSession = req.session ? (req.session as any).pendingCngOrderNumber : undefined;
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:GET /api/cng/callback/success',message:'success callback entry',data:{queryKeys,fullQuery,hasPendingInSession:!!pendingFromSession},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
-
       // Try to get order from query params (if CNG sends them) or session
       let orderNumber = (req.query.ORDER_NUMBER ?? req.query.order_number) as string | undefined;
       const paymentId = (req.query.PAYMENT_ID ?? req.query.payment_id) as string | undefined;
@@ -1013,19 +927,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payment = await storage.getPaymentByOrderNumber(orderNumber.trim());
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback/success payment lookup',message:'payment found',data:{orderNumber:orderNumber.trim(),paymentFound:!!payment,paymentType:payment?.type,eventId:payment?.eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
-
       if (!payment) {
         return res.redirect(`${appUrl}/payment/cancel?error=unknown_order`);
       }
 
       // SUCCESS: Update payment as completed
-      const updatedPayment = await storage.updatePaymentByOrderNumber(orderNumber.trim(), "completed", paymentId, paymentPlatform || undefined);
-      // #region agent log
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:callback/success updated',message:'payment marked completed',data:{updatedPaymentId:updatedPayment?.id,status:updatedPayment?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
+      await storage.updatePaymentByOrderNumber(orderNumber.trim(), "completed", paymentId, paymentPlatform || undefined);
 
       if (payment.type === "membership" || payment.type === "subscription") {
         await storage.updateUserMembershipStatus(payment.userId, "active");
@@ -1047,13 +954,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CNG cancel callback - user cancelled payment
   app.get('/api/cng/callback/cancel', async (req: any, res) => {
     try {
-      // #region agent log
-      const queryKeys = Object.keys(req.query || {});
-      const fullQuery = JSON.stringify(req.query || {});
-      const pendingFromSession = req.session ? (req.session as any).pendingCngOrderNumber : undefined;
-      fetch('http://127.0.0.1:7248/ingest/b01d4d08-cb00-4beb-85ae-2d32c7ff182f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:GET /api/cng/callback/cancel',message:'cancel callback entry',data:{queryKeys,fullQuery,hasPendingInSession:!!pendingFromSession},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
-
       // Try to get order from query params or session
       let orderNumber = (req.query.ORDER_NUMBER ?? req.query.order_number) as string | undefined;
 
